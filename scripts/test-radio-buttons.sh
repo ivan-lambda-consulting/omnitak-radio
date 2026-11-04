@@ -8,7 +8,11 @@ if [[ "$serial" != emulator-* ]]; then
 fi
 
 adb="${ANDROID_HOME:?Set ANDROID_HOME}/platform-tools/adb"
-"$adb" -s "$serial" wait-for-device
+timeout 120 "$adb" -s "$serial" wait-for-device
+if [[ "$("$adb" -s "$serial" shell getprop ro.kernel.qemu | tr -d '\r')" != 1 ]]; then
+  echo "Refusing to install: $serial is not an emulator." >&2
+  exit 2
+fi
 ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon
 
 cleanup() {
