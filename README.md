@@ -1,44 +1,14 @@
-# OmniTAK-Android
+# OmniTAK Radio
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Open-source TAK (Team Awareness Kit) client for Android, built with Kotlin + Jetpack Compose.
+OmniTAK Radio is a work-in-progress fork of [OmniTAK-Android](https://github.com/engindearing-projects/OmniTAK-Android) for a mapless, button-operated TAK communications client on rugged Android devices. The Sonim XP5 with a channel-selector knob is the first test device; XP5plus support must be verified separately.
 
-OmniTAK speaks Cursor-on-Target (CoT) over TLS to any TAK Server, supports tactical map rendering via MapLibre, ADS-B traffic display, Meshtastic radios, drawing tools, and more, designed for search-and-rescue, civil defense, and outdoor operations.
+**Current state:** The fork and independent app identity are established, but the upstream map UI/dependencies are **still present**. There is no radio UI, voice, hardware PTT integration or verified screen-off knob support yet. Do not deploy it as a field radio. See [the upstream technical assessment](docs/OMNITAK_RADIO_ASSESSMENT.md) for the migration boundaries and acceptance gates.
 
-> **Bring your own TAK Server.** OmniTAK is a client. Stand up [TAK Server](https://tak.gov) (community CIV edition), [OpenTAKServer](https://github.com/brian7704/OpenTAKServer), or [taky](https://github.com/tkuester/taky) and point OmniTAK at it.
+The fork retains the upstream Kotlin/Jetpack Compose code and Apache-2.0 attribution. TAK connectivity, CoT, GeoChat, certificates and position reporting are the components to preserve as the map stack is removed.
 
-## Testers wanted
-
-OmniTAK for Android is in **Google Play closed testing**, and every tester helps push it toward the public Play Store release. The iOS build is already live on the [App Store](https://apps.apple.com/us/app/omnitakmobile/id6755246992).
-
-**To test the Android build:** drop your Google-account email in the Beta section at **[omnitak.engindearing.soy](https://omnitak.engindearing.soy)** and you will get the install link by email. Free, no ads, Apache 2.0.
-
-## Download
-
-[![Latest release](https://img.shields.io/github/v/release/engindearing-projects/OmniTAK-Android?label=latest&sort=semver)](https://github.com/engindearing-projects/OmniTAK-Android/releases/latest)
-
-**Current release: [v0.38.0 (versionCode 97)](https://github.com/engindearing-projects/OmniTAK-Android/releases/tag/v0.38.0)**. 2D map rendering batch: dropped markers, contacts, and operator drawings now render on the 2D map across all GPUs, imported KML renders fully (points, lines, and polygons) with clustering for large files, markers refresh instantly on create/edit/delete, and tap-to-edit + lasso select/delete reliably hit dropped markers. Builds on 0.37.0 (KML pins, red-framed coords, offline regions, icon-pack import, FEMA symbols, QR enrollment, EN/PL/DE/FR).
-
-- **Signed APK (sideload):** [OmniTAK-0.38.0-vc97.apk](https://github.com/engindearing-projects/OmniTAK-Android/releases/download/v0.38.0/OmniTAK-0.38.0-vc97.apk)
-- **Always-latest APK:** [releases/latest](https://github.com/engindearing-projects/OmniTAK-Android/releases/latest)
-- **Google Play (closed testing):** [sign up at omnitak.engindearing.soy](https://omnitak.engindearing.soy) with your Google-account email
-
-> **Upgrading?** versionCode is monotonic. Every release ratchets the integer up. Android allows in-place upgrade as long as the signing cert is unchanged.
-
-Verify the APK before installing, signing cert SHA-256 should be `9f3b1fd54ad4eb1dc5b45d91deac4699869617d3d2ac425a1b70337aa0eb13af`:
-
-```bash
-apksigner verify --print-certs OmniTAK-0.38.0-vc97.apk
-```
-
-## Screenshots
-
-| KML pins + labels | Red-framed coordinates | Large KML (1,286 placemarks) |
-|---|---|---|
-| ![KML placemarks as yellow pins with labels](docs/screenshots/kml-pins-labels.jpg) | ![Red-framed coordinate readout](docs/screenshots/red-coord-frame.jpg) | ![1,286-placemark KML imported](docs/screenshots/large-kml.jpg) |
-
-## Features
+## Upstream capabilities currently inherited (not the intended radio feature set)
 
 - **TAK Server connectivity**: TCP / TLS / mTLS with client-certificate enrollment
 - **Cursor-on-Target**: full CoT XML parser, marker rendering, server messaging
@@ -60,9 +30,9 @@ apksigner verify --print-certs OmniTAK-0.38.0-vc97.apk
 ## Getting started
 
 ```bash
-git clone https://github.com/engindearing-projects/OmniTAK-Android.git
-cd OmniTAK-Android
-./gradlew assembleDebug
+git clone https://github.com/ivan-lambda-consulting/omnitak-radio.git
+cd omnitak-radio
+./gradlew :app:assembleDebug :app:testDebugUnitTest
 ```
 
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.

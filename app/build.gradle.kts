@@ -18,11 +18,13 @@ android {
     ndkVersion = "28.2.13676358"
 
     defaultConfig {
-        applicationId = "soy.engindearing.omnitak.mobile"
+        // Independent application identity: installs alongside upstream OmniTAK.
+        // Keep namespace unchanged for now so the upstream Kotlin packages and R/BuildConfig still resolve.
+        applicationId = "com.ivanlambdaconsulting.omnitakradio"
         minSdk = 26
         targetSdk = 36
-        versionCode = 111
-        versionName = "0.45.0"
+        versionCode = 1
+        versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }

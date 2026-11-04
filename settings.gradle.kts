@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "omnitak-android"
+rootProject.name = "omnitak-radio"
 include(":app")
 // Plugin SDK (public interfaces + host contract) and the bundled reference
 // plugins. Authors add a plugin by dropping a module under plugins/ and adding
