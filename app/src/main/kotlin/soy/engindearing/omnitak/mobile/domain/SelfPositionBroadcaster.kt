@@ -34,9 +34,9 @@ import java.util.UUID
  *
  * #205 — a position restored from the previous session ([SelfFix.restored])
  * is never broadcast: the wire stamps time=now, so it would read as a fresh
- * position and then jump when GPS catches up. While the only fix is a
- * restored one (or there is none yet) the tick is skipped, and the loop
- * wakes the moment a live fix lands so the server replaces whatever it has
+ * position and then jump when GPS catches up. The caller also rejects fixes
+ * from stopped or expired GPS subscriptions. While no reportable fix exists,
+ * the tick is skipped and the loop wakes when a new eligible fix lands
  * instead of waiting out the rest of the interval. A manual position
  * ([manualFixProvider]) is the operator's deliberate choice and is always
  * broadcast.
@@ -47,6 +47,9 @@ class SelfPositionBroadcaster internal constructor(
     private val updatePrefs: suspend ((UserPrefs) -> UserPrefs) -> Unit,
     private val sendCoT: suspend (String) -> Boolean,
     private val locationFix: StateFlow<SelfFix?>,
+    // Production requires an active subscription and a recent fix from after
+    // its last stop; internal unit tests can exercise wire behavior in isolation.
+    private val canReportGpsFix: (SelfFix) -> Boolean = { true },
     // #82 — manual self-position override. When non-null, PPLI broadcasts
     // this coordinate instead of the live GPS fix so teammates / the TAK
     // server see the operator where they manually placed themselves (the
@@ -94,14 +97,14 @@ class SelfPositionBroadcaster internal constructor(
     // loop waits for a live fix instead of sleeping the whole interval, so
     // the first real position goes out at once.
     @Volatile private var heldForLiveFix: Boolean = false
-    // #205 - log "restored fix held back" once per held episode, not on every
-    // 30 s tick while GPS is still acquiring.
-    @Volatile private var loggedRestoredHold: Boolean = false
+    // Log once per episode, not on every tick while GPS is unavailable.
+    @Volatile private var loggedGpsHold: Boolean = false
     constructor(
         scope: CoroutineScope,
         prefsStore: UserPrefsStore,
         sendCoT: suspend (String) -> Boolean,
         locationFix: StateFlow<SelfFix?>,
+        canReportGpsFix: (SelfFix) -> Boolean,
         manualFixProvider: () -> SelfFix? = { null },
         batteryProvider: () -> Int? = { null },
         intervalMs: Long = DEFAULT_INTERVAL_MS,
@@ -117,6 +120,7 @@ class SelfPositionBroadcaster internal constructor(
         updatePrefs = { mutator -> prefsStore.update(mutator) },
         sendCoT = sendCoT,
         locationFix = locationFix,
+        canReportGpsFix = canReportGpsFix,
         manualFixProvider = manualFixProvider,
         batteryProvider = batteryProvider,
         intervalMs = intervalMs,
@@ -168,7 +172,7 @@ class SelfPositionBroadcaster internal constructor(
             return
         }
         withTimeoutOrNull(intervalMs) {
-            locationFix.first { it != null && !it.restored }
+            locationFix.first { it != null && !it.restored && canReportGpsFix(it) }
         }
         heldForLiveFix = false
     }
@@ -211,16 +215,16 @@ class SelfPositionBroadcaster internal constructor(
             Log.d(TAG, "PPLI suppressed - no GPS fix yet")
             return
         }
-        if (manual == null && fix.restored) {
+        if (manual == null && (fix.restored || !canReportGpsFix(fix))) {
             heldForLiveFix = true
-            if (!loggedRestoredHold) {
-                loggedRestoredHold = true
-                Log.i(TAG, "PPLI held - only a position restored from the last session; waiting for a live fix")
+            if (!loggedGpsHold) {
+                loggedGpsHold = true
+                Log.i(TAG, "PPLI held - no reportable live GPS fix; waiting for an update")
             }
             return
         }
         heldForLiveFix = false
-        loggedRestoredHold = false
+        loggedGpsHold = false
         val lat = fix.lat
         val lon = fix.lon
         val hae = fix.altitudeM

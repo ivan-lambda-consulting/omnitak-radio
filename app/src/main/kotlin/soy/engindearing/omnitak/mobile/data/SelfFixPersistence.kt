@@ -42,6 +42,11 @@ object SelfFixPersistence {
         return nowMs - fixTimeMs > staleAfterMs
     }
 
+    /** A stopped subscription or a fix from before its last stop cannot be stamped as current PLI. */
+    fun isReportable(fix: SelfFix, nowMs: Long, lastStoppedAtMs: Long, running: Boolean): Boolean =
+        running && !fix.restored && fix.timeMs > lastStoppedAtMs &&
+            fix.timeMs <= nowMs && !isStale(fix.timeMs, nowMs)
+
     /** Throttle gate for persisting fixes: the candidate must be strictly
      *  newer than the last persisted fix AND at least [minIntervalMs]
      *  newer (first write always passes — lastPersistedFixTimeMs = 0). */

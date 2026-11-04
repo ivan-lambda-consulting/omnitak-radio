@@ -14,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import soy.engindearing.omnitak.mobile.data.CoTEvent
 import soy.engindearing.omnitak.mobile.data.SelfFix
+import soy.engindearing.omnitak.mobile.data.SelfFixPersistence
 import soy.engindearing.omnitak.mobile.data.UserPrefs
 
 /**
@@ -27,6 +28,86 @@ import soy.engindearing.omnitak.mobile.data.UserPrefs
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SelfPositionBroadcasterFixSourcingTest {
+
+    @Test fun holds_pli_when_gps_stops_or_expires_then_sends_new_fix() = runTest {
+        val prefs = UserPrefs(selfUid = "ANDROID-test")
+        var now = 100_000L
+        var running = true
+        var lastStoppedAt = 0L
+        val fixFlow = MutableStateFlow<SelfFix?>(SelfFix(52.5, 13.4, 34.0, 0.0, 5f, now))
+        val manual = MutableStateFlow<SelfFix?>(null)
+        val sent = mutableListOf<String>()
+        val b = SelfPositionBroadcaster(
+            scope = backgroundScope,
+            prefsFlow = MutableStateFlow(prefs),
+            updatePrefs = {},
+            sendCoT = { sent += it; true },
+            locationFix = fixFlow,
+            manualFixProvider = { manual.value },
+            canReportGpsFix = { fix ->
+                SelfFixPersistence.isReportable(fix, now, lastStoppedAt, running)
+            },
+            intervalMs = 30_000L,
+        )
+
+        b.broadcastOnce(prefs)
+        assertEquals(1, sent.size)
+        running = false
+        lastStoppedAt = now
+        b.broadcastOnce(prefs)
+        assertEquals("stopped GPS must not be re-stamped", 1, sent.size)
+
+        manual.value = fixFlow.value!!.copy(lat = 40.0)
+        b.broadcastOnce(prefs)
+        assertEquals("intentional manual position still sends", 2, sent.size)
+        assertTrue(sent.last().contains("lat=\"40.0\""))
+        manual.value = null
+
+        running = true
+        b.broadcastOnce(prefs)
+        assertEquals("reconnect cannot reuse the previous session's fix", 2, sent.size)
+        now += SelfFixPersistence.STALE_AFTER_MS + 2
+        fixFlow.value = fixFlow.value!!.copy(timeMs = lastStoppedAt + 1)
+        b.broadcastOnce(prefs)
+        assertEquals("an expired post-stop fix is held", 2, sent.size)
+
+        fixFlow.value = fixFlow.value!!.copy(timeMs = now + 1)
+        b.broadcastOnce(prefs)
+        assertEquals("a future-dated fix is held", 2, sent.size)
+
+        fixFlow.value = fixFlow.value!!.copy(timeMs = now, lat = 52.6)
+        b.broadcastOnce(prefs)
+        assertEquals(3, sent.size)
+        assertTrue(sent.last().contains("lat=\"52.6\""))
+        b.stop()
+    }
+
+    @Test fun unusable_fix_waits_without_busy_loop_and_wakes_on_new_gps_fix() = runTest {
+        val prefs = UserPrefs(selfUid = "ANDROID-test")
+        val fixFlow = MutableStateFlow<SelfFix?>(SelfFix(52.5, 13.4, 34.0, 0.0, 5f, 1_000L))
+        val sent = mutableListOf<String>()
+        var running = false
+        val b = SelfPositionBroadcaster(
+            scope = backgroundScope,
+            prefsFlow = MutableStateFlow(prefs),
+            updatePrefs = {},
+            sendCoT = { sent += it; true },
+            locationFix = fixFlow,
+            canReportGpsFix = { running && it.timeMs > 1_000L },
+            intervalMs = 30_000L,
+        )
+        b.start()
+        runCurrent()
+        advanceTimeBy(1_000L)
+        runCurrent()
+        assertTrue(sent.isEmpty())
+
+        running = true
+        fixFlow.value = fixFlow.value!!.copy(timeMs = 1_001L)
+        runCurrent()
+        assertEquals("first usable fix sends immediately", 1, sent.size)
+        b.stop()
+    }
 
     private fun broadcaster(
         fixFlow: MutableStateFlow<SelfFix?>,

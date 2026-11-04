@@ -675,6 +675,15 @@ class OmniTAKApp : Application() {
             prefsStore = userPrefsStore,
             sendCoT = { xml -> serverManager.sendCoT(xml) },
             locationFix = fixFlow,
+            canReportGpsFix = { fix ->
+                SelfFixPersistence.isReportable(
+                    fix,
+                    nowMs = System.currentTimeMillis(),
+                    lastStoppedAtMs = locationProvider.lastStoppedAtMs,
+                    running = radioLocationSession.status.value ==
+                        soy.engindearing.omnitak.mobile.domain.RadioLocationSession.Status.RUNNING,
+                )
+            },
             // #82 — when the operator manually repositions their self-marker,
             // PPLI broadcasts that coordinate instead of live GPS. The override
             // lives on LocationProvider as the shared source of truth (MapScreen

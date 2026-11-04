@@ -67,6 +67,9 @@ class LocationProvider(private val context: Context) {
     }
 
     private var started = false
+    /** Do not report a cached fix acquired before the last GPS session ended. */
+    @Volatile var lastStoppedAtMs: Long = 0L
+        private set
 
     @SuppressLint("MissingPermission")
     fun start(intervalMs: Long = 10_000L): Boolean {
@@ -91,6 +94,7 @@ class LocationProvider(private val context: Context) {
 
     fun stop() {
         if (!started) return
+        lastStoppedAtMs = System.currentTimeMillis()
         client.removeLocationUpdates(callback)
         started = false
     }
