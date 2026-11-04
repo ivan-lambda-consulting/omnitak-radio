@@ -33,6 +33,9 @@ cd omnitak-radio
 
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 
+For automated, emulator-only D-pad checks and their hardware limits, see
+[radio testing](docs/RADIO_TESTING.md). No phone interaction is needed for CI.
+
 If your system Java is 26 but Android Studio's SDK and a JDK 21 are installed locally, point this command at them without changing repository configuration:
 
 ```bash

@@ -1,11 +1,14 @@
 package soy.engindearing.omnitak.mobile.ui.onboarding
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +21,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -148,99 +152,54 @@ fun OnboardingFlow(onComplete: () -> Unit) {
     var pageIndex by remember { mutableIntStateOf(0) }
     val page = pages[pageIndex]
     val isLast = pageIndex == pages.lastIndex
+    BackHandler(enabled = pageIndex > 0) { pageIndex-- }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            // Draw the dark fill first so it still runs edge to edge behind
-            // the system bars...
             .background(Color(0xFF0A0A0A))
-            // ...then inset the children. #221 — MainActivity uses
-            // enableEdgeToEdge and this root sits outside AppNav's Scaffold,
-            // so nothing consumed the system-bar insets: Skip was laid out
-            // under the status bar and did not take taps. safeDrawing keeps
-            // Skip clear of the status bar / cutout and the bottom controls
-            // clear of the navigation bar or taskbar (and the side cutout in
-            // landscape). The fixed paddings below stay as they were, so
-            // everything shifts only by the inset sizes.
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        // Skip — always visible at top-right
-        TextButton(
-            onClick = onComplete,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 16.dp, end = 8.dp),
-        ) {
-            Text(
-                text = Loc.t("onboarding.skip"),
-                color = Color(0xFFAAAAAA),
-                fontSize = 16.sp,
-            )
-        }
-
-        // Page content — centered
-        OnboardingPageContent(
-            page = page,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(horizontal = 32.dp)
-                .padding(top = 80.dp, bottom = 220.dp),
-        )
-
-        // Bottom controls
+        // The XP5900-sized viewport needs the title, description and controls ahead of decorative content.
+        val compact = maxHeight < 440.dp
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxSize(),
         ) {
-            // Page indicator dots
-            PageIndicator(
-                count = pages.size,
-                current = pageIndex,
-                accentColor = Color(0xFFFFFC00),
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Primary action button: Continue / Get Started
-            Button(
-                onClick = {
-                    if (isLast) onComplete() else pageIndex++
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFFFC00),
-                    contentColor = Color(0xFF000000),
-                ),
+            TextButton(
+                onClick = onComplete,
+                modifier = Modifier.align(Alignment.End),
             ) {
-                Text(
-                    text = if (isLast) Loc.t("onboarding.getStarted")
-                           else Loc.t("onboarding.continue"),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Text(Loc.t("onboarding.skip"), color = Color(0xFFAAAAAA), fontSize = 16.sp)
             }
-
-            // Back button — visible from page 2 onwards
-            if (pageIndex > 0) {
-                TextButton(onClick = { pageIndex-- }) {
+            Box(Modifier.weight(1f).verticalScroll(remember(pageIndex) { ScrollState(0) }).padding(horizontal = 16.dp)) {
+                OnboardingPageContent(page, compact, Modifier.fillMaxWidth())
+            }
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PageIndicator(pages.size, pageIndex, Color(0xFFFFFC00))
+                Button(
+                    onClick = { if (isLast) onComplete() else pageIndex++ },
+                    modifier = Modifier.fillMaxWidth().height(if (compact) 48.dp else 56.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFFFC00),
+                        contentColor = Color(0xFF000000),
+                    ),
+                ) {
                     Text(
-                        text = Loc.t("onboarding.back"),
-                        color = Color(0xFF888888),
-                        fontSize = 16.sp,
+                        if (isLast) Loc.t("onboarding.getStarted") else Loc.t("onboarding.continue"),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
-            } else {
-                // Reserve the same vertical space so the Continue button
-                // doesn't shift when Back appears/disappears.
-                Spacer(modifier = Modifier.height(40.dp))
+                if (pageIndex > 0) {
+                    TextButton(onClick = { pageIndex-- }) {
+                        Text(Loc.t("onboarding.back"), color = Color(0xFF888888), fontSize = 16.sp)
+                    }
+                }
             }
         }
     }
@@ -253,34 +212,36 @@ fun OnboardingFlow(onComplete: () -> Unit) {
 @Composable
 private fun OnboardingPageContent(
     page: OnboardingPage,
+    compact: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 20.dp),
     ) {
-        // Icon with two concentric tinted circles (outer 15 %, inner 25 %)
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(140.dp)
-                .clip(CircleShape)
-                .background(page.accentColor.copy(alpha = 0.15f)),
-        ) {
+        if (!compact) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(140.dp)
                     .clip(CircleShape)
-                    .background(page.accentColor.copy(alpha = 0.25f)),
+                    .background(page.accentColor.copy(alpha = 0.15f)),
             ) {
-                Icon(
-                    imageVector = page.icon,
-                    contentDescription = null,
-                    tint = page.accentColor,
-                    modifier = Modifier.size(44.dp),
-                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .background(page.accentColor.copy(alpha = 0.25f)),
+                ) {
+                    Icon(
+                        imageVector = page.icon,
+                        contentDescription = null,
+                        tint = page.accentColor,
+                        modifier = Modifier.size(44.dp),
+                    )
+                }
             }
         }
 
@@ -288,7 +249,7 @@ private fun OnboardingPageContent(
         Text(
             text = Loc.t(page.titleKey),
             color = Color.White,
-            fontSize = 32.sp,
+            fontSize = if (compact) 22.sp else 32.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
@@ -297,15 +258,16 @@ private fun OnboardingPageContent(
         Text(
             text = Loc.t(page.descKey),
             color = Color(0xFFCCCCCC),
-            fontSize = 17.sp,
+            fontSize = if (compact) 14.sp else 17.sp,
             textAlign = TextAlign.Center,
             lineHeight = 24.sp,
         )
 
-        // Feature list
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            for (key in page.featureKeys) {
-                FeatureRow(text = Loc.t(key), accentColor = page.accentColor)
+        if (!compact) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                for (key in page.featureKeys) {
+                    FeatureRow(text = Loc.t(key), accentColor = page.accentColor)
+                }
             }
         }
     }

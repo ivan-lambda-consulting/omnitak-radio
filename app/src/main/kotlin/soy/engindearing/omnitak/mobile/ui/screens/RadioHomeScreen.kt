@@ -25,6 +25,15 @@ fun RadioHomeScreen(onOpen: (String) -> Unit) {
     val connection by app.serverManager.connectionState.collectAsState()
     val location by app.radioLocationSession.status.collectAsState()
 
+    RadioHomeContent(connection, location, onOpen)
+}
+
+@Composable
+internal fun RadioHomeContent(
+    connection: ConnectionState,
+    location: RadioLocationSession.Status,
+    onOpen: (String) -> Unit,
+) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -32,7 +41,9 @@ fun RadioHomeScreen(onOpen: (String) -> Unit) {
         Text("OmniTAK Radio")
         Text(connectionLabel(connection))
         Text(if (location == RadioLocationSession.Status.RUNNING) "GPS updating" else "GPS unavailable")
-        Button(onClick = { onOpen("chat") }, modifier = Modifier.fillMaxWidth()) { Text("Contacts & messages") }
+        Button(onClick = { onOpen("chat") }, modifier = Modifier.fillMaxWidth()) {
+            Text("Contacts & messages")
+        }
         Button(onClick = { onOpen("servers") }, modifier = Modifier.fillMaxWidth()) { Text("TAK servers") }
         Button(onClick = { onOpen("mesh") }, modifier = Modifier.fillMaxWidth()) { Text("Mesh") }
         Button(onClick = { onOpen("settings") }, modifier = Modifier.fillMaxWidth()) { Text("Settings") }
