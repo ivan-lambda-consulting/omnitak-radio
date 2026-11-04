@@ -1,5 +1,6 @@
 package soy.engindearing.omnitak.mobile.ui
 
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -12,8 +13,9 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.semantics.SemanticsActions
-import org.junit.Assert.assertTrue
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import soy.engindearing.omnitak.mobile.ui.onboarding.OnboardingFlow
@@ -36,6 +38,7 @@ class RadioButtonNavigationTest {
         }
         compose.waitUntil(10_000) { compose.activity.hasWindowFocus() }
         compose.waitForIdle()
+        enterKeyboardMode()
         compose.onNodeWithText("Contacts & messages").performSemanticsAction(SemanticsActions.RequestFocus) {
             assertTrue("radio home did not accept focus", it())
         }
@@ -51,6 +54,7 @@ class RadioButtonNavigationTest {
         compose.setContent { OnboardingFlow(onComplete = { finished = true }) }
         compose.waitUntil(10_000) { compose.activity.hasWindowFocus() }
         compose.waitForIdle()
+        enterKeyboardMode()
         val titles = listOf(
             "Welcome to OmniTAK", "Secure & Certified", "Quick & Easy Setup", "Ready to Connect?",
         )
@@ -78,5 +82,11 @@ class RadioButtonNavigationTest {
             compose.waitForIdle()
         }
         assertTrue("onboarding must finish without touch", finished)
+    }
+
+    private fun enterKeyboardMode() {
+        // Compose focus requests fail in touch mode; a real D-pad press switches input modes.
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_DPAD_DOWN)
+        compose.waitForIdle()
     }
 }
