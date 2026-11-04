@@ -16,6 +16,7 @@ JAVA_HOME="$HOME/.jdks/jbr-21.0.11" ANDROID_HOME="$HOME/Android/Sdk" \
 The script refuses non-emulator serials, sets a temporary 240×320 / 160-dpi
 viewport, installs only on that emulator, runs the two key-input tests and
 restores its display. GitHub CI runs the same script on Android 11 / API 30.
+Use a disposable emulator: `adb install -r` preserves any app data already on it.
 The button tests first send a platform D-pad event to leave Android touch mode,
 then seed focus on a visible action and check D-pad focus moves
 and Select on the onboarding pages. They do **not** prove that an Activity
