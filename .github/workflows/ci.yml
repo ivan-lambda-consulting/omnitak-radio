@@ -1,4 +1,4 @@
-# OmniTAK-Android CI — compile + unit tests.
+# OmniTAK Radio CI — compile + unit tests.
 #
 # Scope and known limitations:
 #  - assembleDebug + testDebugUnitTest only. No instrumented (androidTest)
@@ -20,6 +20,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
