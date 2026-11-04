@@ -24,8 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -121,7 +119,7 @@ private val pages = listOf(
         ),
     ),
     OnboardingPage(
-        icon = Icons.Default.Map,
+        icon = Icons.Default.Wifi,
         titleKey = "onboarding.page4.title",
         descKey = "onboarding.page4.desc",
         accentColor = Color(0xFFFF6B35),
@@ -130,18 +128,6 @@ private val pages = listOf(
             "onboarding.page4.feature2",
             "onboarding.page4.feature3",
             "onboarding.page4.feature4",
-        ),
-    ),
-    OnboardingPage(
-        icon = Icons.Default.Tune,
-        titleKey = "onboarding.page5.title",
-        descKey = "onboarding.page5.desc",
-        accentColor = Color(0xFFFFCC00),
-        featureKeys = listOf(
-            "onboarding.page5.feature1",
-            "onboarding.page5.feature2",
-            "onboarding.page5.feature3",
-            "onboarding.page5.feature4",
         ),
     ),
 )

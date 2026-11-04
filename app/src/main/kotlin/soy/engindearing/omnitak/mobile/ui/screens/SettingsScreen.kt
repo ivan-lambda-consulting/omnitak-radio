@@ -65,17 +65,14 @@ import soy.engindearing.omnitak.mobile.i18n.Loc
 import soy.engindearing.omnitak.mobile.data.CoordFormat
 import soy.engindearing.omnitak.mobile.data.Echelon
 import soy.engindearing.omnitak.mobile.data.DistanceUnit
-import soy.engindearing.omnitak.mobile.data.MapProvider
 import soy.engindearing.omnitak.mobile.data.UserPrefs
 import soy.engindearing.omnitak.mobile.domain.ConnectionState
-import soy.engindearing.omnitak.mobile.domain.IconPackImporter
 import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material3.Icon
 import soy.engindearing.omnitak.mobile.ui.components.GybDeviceSheet
 import soy.engindearing.omnitak.mobile.ui.theme.TacticalAccent
 import soy.engindearing.omnitak.mobile.ui.theme.TacticalBackground
 import soy.engindearing.omnitak.mobile.ui.theme.TacticalSurface
-import soy.engindearing.omnitak.mobile.ui.components.ToolbarEditBus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,27 +187,6 @@ fun SettingsScreen(
                 )
             }
 
-            SectionHeader(Loc.t("settings.section.interface"))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(TacticalSurface)
-                    .clickable { ToolbarEditBus.requestEdit() }
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(Loc.t("settings.customizeToolbar"), color = MaterialTheme.colorScheme.onBackground)
-                    Text(
-                        Loc.t("settings.customizeToolbar.desc"),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                Text("›", color = TacticalAccent, fontWeight = FontWeight.Bold)
-            }
-
             SectionHeader(Loc.t("settings.section.units"))
             SegmentedRow(
                 options = listOf(
@@ -234,47 +210,6 @@ fun SettingsScreen(
                 selected = prefs.coordFormat,
                 onSelect = { v -> mutate { it.copy(coordFormat = v) } },
             )
-
-            SectionHeader(Loc.t("settings.section.mapTiles"))
-            SegmentedRow(
-                options = listOf(
-                    MapProvider.OSM_RASTER to Loc.t("settings.map.osm"),
-                    MapProvider.SATELLITE_HINT to Loc.t("settings.map.satellite"),
-                    MapProvider.TOPO_HINT to Loc.t("settings.map.topo"),
-                    MapProvider.WMTS_CUSTOM to Loc.t("settings.map.custom"),
-                ),
-                selected = prefs.mapProvider,
-                onSelect = { v -> mutate { it.copy(mapProvider = v) } },
-            )
-            Text(
-                Loc.t("settings.mapTiles.desc"),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                style = MaterialTheme.typography.bodySmall,
-            )
-
-            // GAP-107 — show the custom URL field only when Custom is picked.
-            if (prefs.mapProvider == MapProvider.WMTS_CUSTOM) {
-                var urlDraft by remember(prefs.customTileUrl) {
-                    mutableStateOf(prefs.customTileUrl)
-                }
-                OutlinedTextField(
-                    value = urlDraft,
-                    onValueChange = { v ->
-                        urlDraft = v
-                        mutate { it.copy(customTileUrl = v) }
-                    },
-                    label = { Text(Loc.t("settings.tileUrl")) },
-                    placeholder = { Text("https://host/{z}/{x}/{y}.png") },
-                    singleLine = true,
-                    colors = settingsFieldColors(),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text(
-                    Loc.t("settings.customTile.help"),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
 
             SectionHeader(Loc.t("settings.section.selfPosition"))
             // #211 - master switch for reporting my position (server + mesh PPLI).
@@ -598,92 +533,7 @@ fun SettingsScreen(
                 }
             }
 
-            // Issue #114 — icon-pack import. SAF picker routes the picked .zip
-            // to IconPackImporter on a background thread, then toasts the result.
-            // Registry.register() is called inside importStream, so the picker
-            // sees the new pack on its next recomposition.
-            SectionHeader("Symbology")
-            val iconPackCtx = LocalContext.current
-            val iconPackLauncher = rememberLauncherForActivityResult(
-                ActivityResultContracts.OpenDocument(),
-            ) { uri: Uri? ->
-                if (uri == null) return@rememberLauncherForActivityResult
-                scope.launch(Dispatchers.IO) {
-                    val importer = IconPackImporter(iconPackCtx)
-                    val stream = runCatching {
-                        iconPackCtx.contentResolver.openInputStream(uri)
-                    }.getOrNull()
-                    val result = if (stream != null) {
-                        stream.use { importer.importStream(it, uri.lastPathSegment ?: "pack.zip") }
-                    } else {
-                        IconPackImporter.ImportResult.Failure("Could not open the selected file")
-                    }
-                    val msg = when (result) {
-                        is IconPackImporter.ImportResult.Success ->
-                            "Icon pack \"${result.pack.name}\" imported (${result.pack.icons.size} icons)"
-                        is IconPackImporter.ImportResult.Failure ->
-                            "Import failed: ${result.reason}"
-                    }
-                    launch(Dispatchers.Main) {
-                        Toast.makeText(iconPackCtx, msg, Toast.LENGTH_LONG).show()
-                    }
-                }
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { iconPackLauncher.launch(arrayOf("application/zip", "application/octet-stream")) }
-                    .padding(vertical = 10.dp, horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                androidx.compose.material3.Icon(
-                    Icons.Filled.FileUpload,
-                    contentDescription = null,
-                    tint = TacticalAccent,
-                    modifier = Modifier.size(22.dp),
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Import icon pack (.zip)", color = MaterialTheme.colorScheme.onBackground)
-                    Text(
-                        "Add a custom ATAK iconset to the marker picker",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                androidx.compose.material3.Icon(
-                    Icons.Filled.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                )
-            }
-
-            // Issue #95 / #97 — map behaviour toggles.
-            SectionHeader("Map")
-            // North-up lock (#95)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Lock north-up",
-                        color = MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        "Disable map rotation and always face north",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                Switch(
-                    checked = prefs.northUpLocked,
-                    onCheckedChange = { v -> mutate { it.copy(northUpLocked = v) } },
-                )
-            }
-            // Keep screen on (#97)
+            SectionHeader("Display")
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
@@ -695,7 +545,7 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Text(
-                        "Prevent screen from sleeping while the map is open",
+                        "Prevent the screen from sleeping while the app is open",
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -705,76 +555,6 @@ fun SettingsScreen(
                     onCheckedChange = { v -> mutate { it.copy(keepScreenOn = v) } },
                 )
             }
-            // Auto-hide toolbar — map tab only
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Auto-hide toolbar",
-                        color = MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        "On the map tab, hide the bottom toolbar after 3s to show more map. " +
-                            "Tap the bottom edge to bring it back",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                Switch(
-                    checked = prefs.autoHideToolbar,
-                    onCheckedChange = { v -> mutate { it.copy(autoHideToolbar = v) } },
-                )
-            }
-            // Top info bar — server name, msg counters, GPS accuracy, clock
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Top info bar",
-                        color = MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        "Show server name, message counters, GPS accuracy, and the clock " +
-                            "above the map. The small TAK server connection dot stays visible either way",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                Switch(
-                    checked = prefs.topInfoBarVisible,
-                    onCheckedChange = { v -> mutate { it.copy(topInfoBarVisible = v) } },
-                )
-            }
-            // #178 — staleness overlay: age label + fade on contact pins
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Show point age on map",
-                        color = MaterialTheme.colorScheme.onBackground,
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        "Label contact pins with their age and fade them as they go stale " +
-                            "(fresh under 1 min, aging 1–5 min, stale over 5 min)",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                Switch(
-                    checked = prefs.stalenessOverlayEnabled,
-                    onCheckedChange = { v -> mutate { it.copy(stalenessOverlayEnabled = v) } },
-                )
-            }
-
             // About — the route was registered in AppNav since 0.1 but
             // nothing navigated to it after the bottom-bar rework dropped
             // the About tab. This row is the entry point.

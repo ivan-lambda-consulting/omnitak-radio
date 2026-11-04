@@ -4,20 +4,16 @@
 
 OmniTAK Radio is a work-in-progress fork of [OmniTAK-Android](https://github.com/engindearing-projects/OmniTAK-Android) for a mapless, button-operated TAK communications client on rugged Android devices. The first test device is the Sonim **XP5900 (XP5plus) with knobs**; earlier XP5 models are distinct and remain unverified.
 
-**Current state:** The app opens to an initial radio home with TAK/GPS status and message/server/settings navigation, but the upstream map UI/dependencies are **still present**. There is no configurable hardware control flow, voice, transmitting PTT or verified screen-off knob support yet. Do not deploy it as a field radio. See [the upstream technical assessment](docs/OMNITAK_RADIO_ASSESSMENT.md) for the migration boundaries and acceptance gates.
+**Current state:** The app opens to a mapless radio home with TAK/GPS status and message/server/settings navigation. There is no configurable hardware control flow, voice, transmitting PTT or verified screen-off knob support yet. Do not deploy it as a field radio. See [the upstream technical assessment](docs/OMNITAK_RADIO_ASSESSMENT.md) for the migration boundaries and acceptance gates.
 
-The fork retains the upstream Kotlin/Jetpack Compose code and Apache-2.0 attribution. TAK connectivity, CoT, GeoChat, certificates and position reporting are the components to preserve as the map stack is removed.
+The fork retains the upstream Kotlin namespace and Apache-2.0 attribution. TAK connectivity, CoT, GeoChat, certificates, contacts and position reporting remain independent of the removed map renderer.
 
-## Upstream capabilities currently inherited (not the intended radio feature set)
+## Capabilities currently inherited (not the complete radio feature set)
 
 - **TAK Server connectivity**: TCP / TLS / mTLS with client-certificate enrollment
-- **Cursor-on-Target**: full CoT XML parser, marker rendering, server messaging
-- **Tactical map**: MapLibre Native Android with custom layers (contacts, drawing, aircraft, mesh nodes, grid, measurement)
-- **ADS-B traffic**: aircraft overlay with bring-your-own provider
+- **Cursor-on-Target**: CoT XML parser, contact roster, server messaging and own position reporting
 - **Meshtastic**: TCP connection to Meshtastic mesh radios
-- **Drawing tools**: points, lines, polygons, range/bearing, measurement
 - **Multi-server management**: connect to multiple TAK servers
-- **Radial menu**: quick actions on map long-press
 - **Material 3 dark theme**: tactical color palette
 
 ## Requirements
@@ -75,8 +71,8 @@ app/src/main/kotlin/soy/engindearing/omnitak/mobile/
 ├── data/            # Models + persistence (TAKServer, CoTEvent, ChatMessage, etc.)
 ├── domain/          # State stores (ServerManager, ChatStore, ContactStore, etc.)
 └── ui/
-    ├── screens/     # Top-level screens (Map, Servers, Chat, Meshtastic, Settings, etc.)
-    ├── components/  # Reusable layers and widgets (TacticalMap, RadialMenu, etc.)
+    ├── screens/     # Radio home, servers, chat, mesh and settings
+    ├── components/  # Shared UI widgets
     ├── navigation/  # Compose Navigation graph
     └── theme/       # Material 3 theme + tactical colors
 ```
@@ -85,18 +81,17 @@ The app is pure Kotlin + Compose with no native bridge. A future release will in
 
 ### Plugins
 
-OmniTAK ships a compile-time plugin SDK (`:plugins:plugin-sdk`) and a reference
-plugin (`:plugins:example-adsb`, the ADS-B aircraft overlay). Plugins are
-statically-linked Gradle modules, no dynamic/remote code, so the app stays
-Play-Store compliant. See **[docs/PLUGIN_AUTHORING.md](docs/PLUGIN_AUTHORING.md)**
-for the contract, the host seams (map overlay / radial / CoT / settings), and a
-step-by-step "add a plugin" guide. Plugin authoring mirrors the iOS SDK so a
-plugin ports across platforms in about a day.
+The compile-time plugin SDK (`:plugins:plugin-sdk`) and diagnostics example
+remain. The upstream ADS-B example is retained in the repository for reference
+but is not included in the radio build. The plugin API still has legacy map
+hooks; they are not active in this app. See [plugin authoring notes](docs/PLUGIN_AUTHORING.md)
+for the inherited contract (not a radio-specific authoring guide).
 
 ```
 plugins/
 ├── plugin-sdk/      # OmniTAKPlugin, PluginHost, PluginRegistry, value types
-└── example-adsb/    # ADS-B reference plugin (OpenSky overlay + settings)
+├── example-diagnostics/ # Bundled, off by default
+└── example-adsb/    # Upstream map example; not included in the radio build
 ```
 
 ## Permissions
@@ -108,13 +103,13 @@ plugins/
 | `ACCESS_FINE_LOCATION` | Self-location reporting (PPLI), GPS-aware tools |
 | `ACCESS_COARSE_LOCATION` | Fallback for users who deny precise location |
 
-No tracking, no analytics, no third-party SDKs.
+No analytics or tracking SDKs; Android, location and QR libraries remain.
 
 ## Security & privacy
 
 - All TAK Server connections are TLS 1.2+ by default
 - Client certificates are stored in Android Keystore
-- No outbound traffic except to user-configured TAK Servers and ADS-B providers
+- No MapLibre tile or ADS-B provider requests from the radio build
 
 Found a vulnerability? See [SECURITY.md](SECURITY.md) for responsible disclosure.
 

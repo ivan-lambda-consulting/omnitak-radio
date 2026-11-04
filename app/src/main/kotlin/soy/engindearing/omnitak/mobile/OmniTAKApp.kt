@@ -28,7 +28,6 @@ import soy.engindearing.omnitak.mobile.domain.ContactStore
 import soy.engindearing.omnitak.mobile.domain.ConnectionState
 import soy.engindearing.omnitak.mobile.domain.DataPackageBootstrap
 import soy.engindearing.omnitak.mobile.domain.DrawingStore
-import soy.engindearing.omnitak.mobile.domain.MapCameraStore
 import soy.engindearing.omnitak.mobile.domain.MeshCoTBridge
 import soy.engindearing.omnitak.mobile.domain.MeshCoTRouter
 import soy.engindearing.omnitak.mobile.domain.MeshFrameworkManager
@@ -45,12 +44,6 @@ class OmniTAKApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-
-        // #139 — give MapLibre an HTTP client that sends an app-identifying
-        // User-Agent. OSM/OpenTopoMap serve a "403 Access blocked" tile to
-        // clients with a generic UA. Must run before any MapView is created so
-        // the first tile fetch already carries it.
-        soy.engindearing.omnitak.mobile.data.MapTileHttp.install(this)
 
         // Restore the operator's UI language (or match the device locale)
         // before any Activity composes, so the first frame renders in the
@@ -154,13 +147,6 @@ class OmniTAKApp : Application() {
                     FgsWant.HOLD -> { /* leave service state alone */ }
                 }
             }
-        }
-
-        // Seed the in-memory camera cache from DataStore so MapScreen's
-        // cold-start read gets the persisted view before first composition.
-        appScope.launch {
-            val saved = userPrefsStore.prefs.first()
-            mapCameraStore.seedFromPrefs(saved)
         }
 
         // Issue #75 — self-marker persistence across screen-off + process
@@ -333,10 +319,6 @@ class OmniTAKApp : Application() {
         soy.engindearing.omnitak.mobile.ui.plugin.AppPluginHost()
     }
 
-    /** The bundled ADS-B reference plugin instance. Held so the host can wire
-     *  its camera-center provider + camera-follow at the MapScreen seam. */
-    val adsbPlugin: soy.engindearing.adsb.AdsbPlugin by lazy { soy.engindearing.adsb.AdsbPlugin() }
-
     /** The bundled Diagnostics reference plugin — the second example plugin,
      *  exercising the radial-action + CoT-handler hooks ADS-B doesn't use.
      *  DISABLED by default (parity with iOS's DiagnosticsPlugin); see
@@ -371,7 +353,6 @@ class OmniTAKApp : Application() {
         )
     }
     val drawingStore: DrawingStore by lazy { DrawingStore() }
-    val mapCameraStore: MapCameraStore by lazy { MapCameraStore(userPrefsStore) }
 
     /** #173 — raises an Android notification for incoming mesh GeoChat. Wired
      *  into both mesh managers' chat-ingest paths below. */
@@ -602,21 +583,6 @@ class OmniTAKApp : Application() {
             serverStore = TAKServerStore(this),
         )
     }
-    val kmlOverlayStore: soy.engindearing.omnitak.mobile.data.KmlVectorOverlayStore by lazy {
-        soy.engindearing.omnitak.mobile.data.KmlVectorOverlayStore(this)
-    }
-    val mbtilesOverlayStore: soy.engindearing.omnitak.mobile.data.MBTilesOverlayStore by lazy {
-        soy.engindearing.omnitak.mobile.data.MBTilesOverlayStore(this)
-    }
-    val rasterOverlayStore: soy.engindearing.omnitak.mobile.data.RasterOverlayStore by lazy {
-        soy.engindearing.omnitak.mobile.data.RasterOverlayStore(this)
-    }
-    /** Downloaded offline map regions (#120) — each is an MBTiles file served
-     *  by the shared MBTilesServer so the map works with no network. */
-    val offlineRegionStore: soy.engindearing.omnitak.mobile.data.offline.OfflineRegionStore by lazy {
-        soy.engindearing.omnitak.mobile.data.offline.OfflineRegionStore(this)
-    }
-
     /** Single Remote ID track roster shared by the phone scanner and the
      *  gyb sensor. One store means either source refreshes a drone's
      *  lastSeen and the stale purge only drops a track when BOTH sensors
@@ -849,7 +815,6 @@ class OmniTAKApp : Application() {
      * plugin later removes exactly its hooks.
      */
     private fun loadBundledPlugins() {
-        soy.engindearing.omnitak.plugin.PluginRegistry.register(adsbPlugin)
         soy.engindearing.omnitak.plugin.PluginRegistry.register(diagnosticsPlugin)
 
         // First-run: seed the default-OFF plugins' enable flags to false so the

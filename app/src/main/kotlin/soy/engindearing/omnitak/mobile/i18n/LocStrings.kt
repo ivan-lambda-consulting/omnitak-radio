@@ -169,7 +169,7 @@ internal object LocStrings {
         "onboarding.page1.desc" to "Your powerful Android client for Team Awareness Kit (TAK) servers. Connect, share, and collaborate in real-time.",
         "onboarding.page1.feature1" to "Real-time position sharing",
         "onboarding.page1.feature2" to "Secure communications",
-        "onboarding.page1.feature3" to "Map-based awareness",
+        "onboarding.page1.feature3" to "Contacts and messages",
         "onboarding.page1.feature4" to "Multi-platform support",
 
         // --- Onboarding page 2: Secure & Certified ---
@@ -336,7 +336,7 @@ internal object LocStrings {
         "onboarding.page1.desc" to "您強大的 Android 客戶端，用於 Team Awareness Kit (TAK) 伺服器。即時連線、分享與協作。",
         "onboarding.page1.feature1" to "即時位置共享",
         "onboarding.page1.feature2" to "安全通訊",
-        "onboarding.page1.feature3" to "地圖態勢感知",
+        "onboarding.page1.feature3" to "聯絡人與訊息",
         "onboarding.page1.feature4" to "多平台支援",
 
         // --- Onboarding page 2: Secure & Certified ---

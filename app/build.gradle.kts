@@ -29,20 +29,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
-        // Cesium Ion token lives in local.properties (gitignored) — NEVER in
-        // a committed asset; this is a public repo. CesiumMapView injects it
-        // into cesium_scene.html at WebView load time. The empty default
-        // keeps clean checkouts / CI green (the 3D globe runs tokenless with
-        // degraded Ion imagery instead of failing the build).
-        val localProps = Properties().apply {
-            val f = rootProject.file("local.properties")
-            if (f.exists()) f.inputStream().use { load(it) }
-        }
-        buildConfigField(
-            "String",
-            "CESIUM_ION_TOKEN",
-            "\"${localProps.getProperty("CESIUM_ION_TOKEN") ?: ""}\"",
-        )
     }
 
     // Upload keystore lives outside source control. Set the four props in
@@ -141,14 +127,10 @@ android {
 }
 
 dependencies {
-    // Plugin SDK + bundled plugins. The SDK carries the OmniTAKPlugin contract
-    // and the registry; example-adsb is the ADS-B reference plugin extracted
-    // out of :app; example-diagnostics is a second reference plugin (radial +
-    // CoT hooks, OFF by default) for parity with iOS's DiagnosticsPlugin.
+    // Plugin SDK and the bundled diagnostics reference plugin (OFF by default).
     // Compile-time modules only — no dynamic/remote code, so the app stays
     // Play-Store compliant.
     implementation(project(":plugins:plugin-sdk"))
-    implementation(project(":plugins:example-adsb"))
     implementation(project(":plugins:example-diagnostics"))
 
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
@@ -176,28 +158,10 @@ dependencies {
     // only non-secret fields; see SecureCredentialStore.
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
-    // MapLibre Android (open-source fork of Mapbox) — parallel to iOS
-    implementation("org.maplibre.gl:android-sdk:11.8.0")
-
-    // OkHttp — used ONLY to install a custom HTTP client into MapLibre via
-    // HttpRequestUtil.setOkHttpClient(), so we can send an identifying
-    // User-Agent on tile requests. OpenStreetMap (and OpenTopoMap) serve a
-    // "403 Access blocked" placeholder tile to clients with a generic UA;
-    // an app-identifying UA is required by their tile usage policy (#139).
-    // MapLibre 11.x already bundles OkHttp 4.x; we pin the same major so the
-    // resolved version stays compatible.
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
     // NGA's tested MGRS / UTM converter. Operators rely on grid coords
     // for navigation; rolling our own would risk silent miscalculation.
     // Pure-Java, ~250 KB, no Android resources.
     implementation("mil.nga.mgrs:mgrs-android:2.2.3")
-
-    // NGA's pure-Java TIFF reader — decodes GeoTIFF rasters (uncompressed,
-    // LZW, Deflate, PackBits) that Android's BitmapFactory can't. We parse the
-    // GeoTIFF geo-tags ourselves (GeoTIFFParser) and use this only for the
-    // pixel raster → Bitmap. Apache-2.0, ~150 KB, no Android resources.
-    implementation("mil.nga:tiff:3.0.0")
 
     // Nordic Semiconductor BLE library — used by MeshtasticBleClient.
     // Wraps the platform GATT API in a queueable, callback-driven manager
@@ -208,9 +172,7 @@ dependencies {
     // GAP-030b — FusedLocationProviderClient for real GPS fixes.
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
-    // AndroidSVG — renders MIL-STD-2525 symbols (assets/milstd/*.svg) to
-    // Bitmaps for the MapLibre Marker Icon pipeline. Apache-2.0, stable.
-    // baseProfile="tiny" SVGs convert in under 2 ms each on a Pixel 6.
+    // AndroidSVG — retained for symbology/icon parsing without a map renderer.
     implementation("com.caverock:androidsvg-aar:1.4")
 
     // BouncyCastle — PKCS#10 CSR construction for TAK Server Quick Connect
@@ -260,16 +222,14 @@ dependencies {
     // (e.g. MeshtasticCoTBridge enabled toggle).
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     // Real org.json impl so JVM tests can exercise JSONObject/JSONArray
-    // (e.g. CesiumEntityJson serialization). Android stubs them otherwise.
+    // Android stubs JSONObject/JSONArray otherwise.
     testImplementation("org.json:json:20240303")
     // Real XmlPullParser impl (same trick as org.json above) so JVM tests
     // exercise the production CoTParser/ChatXml path — the mockable
     // android.jar makes XmlPullParserFactory.newInstance() return null.
     testImplementation("net.sf.kxml:kxml2:2.3.0")
 
-    // Instrumented tests — symbology validation runs on a real device or
-    // emulator because MapLibre's SurfaceView renders through native GL
-    // and can't be captured by JVM/Compose unit tests.
+    // Instrumented tests for Android platform features.
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
