@@ -2,7 +2,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-OmniTAK Radio is a work-in-progress fork of [OmniTAK-Android](https://github.com/engindearing-projects/OmniTAK-Android) for a mapless, button-operated TAK communications client on rugged Android devices. The Sonim XP5 with a channel-selector knob is the first test device; XP5plus support must be verified separately.
+OmniTAK Radio is a work-in-progress fork of [OmniTAK-Android](https://github.com/engindearing-projects/OmniTAK-Android) for a mapless, button-operated TAK communications client on rugged Android devices. The first test device is the Sonim **XP5900 (XP5plus) with knobs**; earlier XP5 models are distinct and remain unverified.
 
 **Current state:** The fork and independent app identity are established, but the upstream map UI/dependencies are **still present**. There is no radio UI, voice, hardware PTT integration or verified screen-off knob support yet. Do not deploy it as a field radio. See [the upstream technical assessment](docs/OMNITAK_RADIO_ASSESSMENT.md) for the migration boundaries and acceptance gates.
 
@@ -24,7 +24,7 @@ The fork retains the upstream Kotlin/Jetpack Compose code and Apache-2.0 attribu
 
 - Android 8.0 (API 26) or later
 - Android Studio Ladybug or later (for development)
-- JDK 17
+- JDK 17 (CI) or a compatible JDK 21 (local builds verified); the system-default Java 26 is not supported by this Gradle setup
 - A TAK Server you can reach (BYO, see above)
 
 ## Getting started
@@ -36,6 +36,13 @@ cd omnitak-radio
 ```
 
 The debug APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
+
+If your system Java is 26 but Android Studio's SDK and a JDK 21 are installed locally, point this command at them without changing repository configuration:
+
+```bash
+JAVA_HOME="$HOME/.jdks/jbr-21.0.11" ANDROID_HOME="$HOME/Android/Sdk" \
+  ./gradlew :app:assembleDebug :app:testDebugUnitTest
+```
 
 To install on a connected device:
 
