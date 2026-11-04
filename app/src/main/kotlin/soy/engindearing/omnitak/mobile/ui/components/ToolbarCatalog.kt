@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.FlightTakeoff
 import androidx.compose.material.icons.filled.Gesture
 import androidx.compose.material.icons.filled.Handyman
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Router
 import androidx.compose.material.icons.filled.Settings
@@ -75,6 +76,7 @@ object ToolbarCatalog {
 
     /** NavHost destinations — switch the visible screen. */
     val destinations: List<BarItem> = listOf(
+        BarItem("radio", "Radio", Icons.Filled.Home, cMap, BarKind.Destination("radio")),
         BarItem("map", "Map", Icons.Filled.Map, cMap, BarKind.Destination("map")),
         BarItem("chat", "Chat", Icons.AutoMirrored.Filled.Chat, cChat, BarKind.Destination("chat")),
         BarItem("servers", "Servers", Icons.Filled.Storage, cServers, BarKind.Destination("servers")),
@@ -95,7 +97,7 @@ object ToolbarCatalog {
 
     /** Default layout — matches the original hardcoded NavTabs so existing
      *  users see no change until they customize. */
-    val defaultIds: List<String> = listOf("map", "chat", "servers", "mesh", "tools", "settings")
+    val defaultIds: List<String> = listOf("radio", "chat", "servers", "mesh", "tools", "settings")
 
     fun item(id: String): BarItem? = all.firstOrNull { it.id == id }
 

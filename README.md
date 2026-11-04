@@ -4,7 +4,7 @@
 
 OmniTAK Radio is a work-in-progress fork of [OmniTAK-Android](https://github.com/engindearing-projects/OmniTAK-Android) for a mapless, button-operated TAK communications client on rugged Android devices. The first test device is the Sonim **XP5900 (XP5plus) with knobs**; earlier XP5 models are distinct and remain unverified.
 
-**Current state:** The fork and independent app identity are established, but the upstream map UI/dependencies are **still present**. There is no radio UI, voice, hardware PTT integration or verified screen-off knob support yet. Do not deploy it as a field radio. See [the upstream technical assessment](docs/OMNITAK_RADIO_ASSESSMENT.md) for the migration boundaries and acceptance gates.
+**Current state:** The app opens to an initial radio home with TAK/GPS status and message/server/settings navigation, but the upstream map UI/dependencies are **still present**. There is no configurable hardware control flow, voice, transmitting PTT or verified screen-off knob support yet. Do not deploy it as a field radio. See [the upstream technical assessment](docs/OMNITAK_RADIO_ASSESSMENT.md) for the migration boundaries and acceptance gates.
 
 The fork retains the upstream Kotlin/Jetpack Compose code and Apache-2.0 attribution. TAK connectivity, CoT, GeoChat, certificates and position reporting are the components to preserve as the map stack is removed.
 

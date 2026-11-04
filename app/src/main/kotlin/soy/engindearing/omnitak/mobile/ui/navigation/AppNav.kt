@@ -61,6 +61,7 @@ import soy.engindearing.omnitak.mobile.ui.screens.MeshDeviceSettingsScreen
 import soy.engindearing.omnitak.mobile.ui.screens.MeshTopologyScreen
 import soy.engindearing.omnitak.mobile.ui.screens.MeshtasticScreen
 import soy.engindearing.omnitak.mobile.ui.screens.ProfilesScreen
+import soy.engindearing.omnitak.mobile.ui.screens.RadioHomeScreen
 import soy.engindearing.omnitak.mobile.ui.screens.ServersScreen
 import soy.engindearing.omnitak.mobile.ui.screens.SettingsScreen
 import soy.engindearing.omnitak.mobile.ui.screens.UASScreen
@@ -311,9 +312,12 @@ fun AppNav() {
         Box(Modifier.fillMaxSize()) {
         NavHost(
             navController = nav,
-            startDestination = "map",
+            startDestination = "radio",
             modifier = Modifier.padding(inner),
         ) {
+            composable("radio") {
+                RadioHomeScreen(onOpen = { route -> navigateTo(route) })
+            }
             composable("map") {
                 MapScreen(locationGranted = locationGranted, onOpenTab = { route -> navigateTo(route) })
             }
