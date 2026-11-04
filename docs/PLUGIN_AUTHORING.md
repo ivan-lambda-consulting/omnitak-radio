@@ -1,9 +1,9 @@
 # OmniTAK Android: Plugin SDK Authoring
 
-Status: **Shipped (v0.35)**. The `OmniTAKPlugin` SDK and the ADS-B reference
-plugin are real, compile-time Gradle modules in this repo. A matching SDK ships
-on `OmniTAK-iOS` in the same release, keep `pluginId` identical across
-platforms and a plugin ports in roughly a day.
+**Upstream reference, not a radio plugin guide.** The radio build includes
+`:plugins:plugin-sdk` and the disabled-by-default diagnostics example only.
+The ADS-B map plugin below remains as upstream source for reference but is not
+included in `settings.gradle.kts` or the app; its map hooks have no radio UI.
 
 ## What shipped
 
@@ -12,10 +12,9 @@ platforms and a plugin ports in roughly a day.
 | `:plugins:plugin-sdk` | Public contract: `OmniTAKPlugin`, `PluginHost`, `PluginRegistry`, the SDK value types, and `LocalMapEngineHandle`. Depends only on Compose + Material3, **not** on `:app` or MapLibre. |
 | `:plugins:example-adsb` | The ADS-B reference plugin. Owns its `AdsbService` (OpenSky poller), its map overlay (`AircraftLayer` GL feeder), and its settings. Depends on `:plugins:plugin-sdk` + MapLibre only. |
 
-`:app` declares `implementation(project(":plugins:plugin-sdk"))` and
-`implementation(project(":plugins:example-adsb"))`. The dependency direction is
-strictly **`:app → {plugin-sdk, example-adsb} → maplibre`**, never backwards.
-There is no circular dependency.
+The radio app depends on `plugin-sdk` and `example-diagnostics`, not
+`example-adsb` or MapLibre. The remaining ADS-B examples describe upstream
+behavior only and cannot be run in the radio build without restoring a map.
 
 ## Security model: read this
 

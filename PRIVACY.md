@@ -1,6 +1,6 @@
 # OmniTAK Radio: privacy notes
 
-_Last updated: 2026-04-25_
+_Last updated: 2026-11-04_
 
 OmniTAK Radio is a public fork of OmniTAK Mobile. This document describes
 the radio build; it does not change the upstream app's privacy policy.
