@@ -3,6 +3,7 @@ package soy.engindearing.omnitak.mobile
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -29,6 +30,7 @@ import soy.engindearing.omnitak.mobile.data.ConnectionProtocol
 import soy.engindearing.omnitak.mobile.data.DeepLinkImport
 import soy.engindearing.omnitak.mobile.data.ImportedServerConfig
 import soy.engindearing.omnitak.mobile.data.TAKServer
+import soy.engindearing.omnitak.mobile.domain.HardwareInputProbe
 import soy.engindearing.omnitak.mobile.ui.navigation.AppNav
 import soy.engindearing.omnitak.mobile.ui.onboarding.OnboardingFlow
 import soy.engindearing.omnitak.mobile.ui.onboarding.OnboardingManager
@@ -36,6 +38,19 @@ import soy.engindearing.omnitak.mobile.ui.theme.OmniTAKTheme
 import soy.engindearing.omnitak.mobile.ui.theme.TacticalBackground
 
 class MainActivity : ComponentActivity() {
+    /** Debug evidence of app-level delivery, not a fixed hardware mapping. */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val deviceName = event.device?.name
+        if (BuildConfig.DEBUG && HardwareInputProbe.isKnobDevice(deviceName)) {
+            Log.d(
+                "RadioInputProbe",
+                "device=$deviceName keyCode=${event.keyCode} scanCode=${event.scanCode} " +
+                    "action=${event.action} repeat=${event.repeatCount}",
+            )
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
