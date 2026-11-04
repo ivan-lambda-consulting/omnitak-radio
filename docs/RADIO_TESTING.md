@@ -15,7 +15,9 @@ JAVA_HOME="$HOME/.jdks/jbr-21.0.11" ANDROID_HOME="$HOME/Android/Sdk" \
 
 The script refuses non-emulator serials, sets a temporary 240×320 / 160-dpi
 viewport, installs only on that emulator, runs the two key-input tests and
-restores its display. GitHub CI runs the same script on Android 11 / API 30.
+restores its display. GitHub CI runs the same script on Android 11 / API 30;
+the installed local API 37 emulator has shown intermittent input-focus failures
+and is not the acceptance gate.
 The button tests seed focus on a visible action, then check D-pad focus moves
 and Select on the onboarding pages. They do **not** prove that an Activity
 receives initial focus automatically after waking or opening the app. Tests of
