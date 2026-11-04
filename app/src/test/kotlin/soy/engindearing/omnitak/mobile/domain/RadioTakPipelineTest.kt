@@ -88,7 +88,7 @@ class RadioTakPipelineTest {
         try {
             withTimeout(5_000) { manager.connectionState.first { it is ConnectionState.Connected } }
             val client = accepted.poll(5, TimeUnit.SECONDS)
-            assertNotNull("the TAK peer should accept the connection", client)
+                ?: error("the TAK peer did not accept the connection")
             // Send one position and one GeoChat frame over the actual socket.
             val contactXml = """<event version="2.0" uid="PEER-1" type="a-f-G" time="2026-01-01T00:00:00Z" start="2026-01-01T00:00:00Z" stale="2026-01-01T00:05:00Z" how="h-e"><point lat="52.5" lon="13.4" hae="0" ce="5" le="5"/><detail><contact callsign="PEER"/></detail></event>"""
             val chatXml = ChatXml.generateGeoChat(
@@ -96,7 +96,7 @@ class RadioTakPipelineTest {
                 isGroup = false, recipientUid = prefs.selfUid,
                 recipientCallsign = prefs.callsign, messageId = "radio-test-chat",
             ).xml
-            client!!.getOutputStream().write((contactXml + chatXml).toByteArray(Charsets.UTF_8))
+            client.getOutputStream().write((contactXml + chatXml).toByteArray(Charsets.UTF_8))
             client.getOutputStream().flush()
             withTimeout(5_000) { contacts.contacts.first { "PEER-1" in it } }
             withTimeout(5_000) {
@@ -106,8 +106,9 @@ class RadioTakPipelineTest {
             }
             assertEquals("TAK: ${server.name}", contacts.contacts.value["PEER-1"]?.source?.label)
 
-            broadcaster.start()
+            broadcaster.broadcastOnce(prefs)
             assertEquals("restored fix cannot go on the wire", null, received.poll(250, TimeUnit.MILLISECONDS))
+            broadcaster.start()
 
             fix.value = SelfFix(
                 lat = 52.5, lon = 13.4, altitudeM = 34.0, speedKmh = 0.0,

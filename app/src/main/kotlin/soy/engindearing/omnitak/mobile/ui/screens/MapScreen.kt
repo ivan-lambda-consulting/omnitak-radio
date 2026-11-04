@@ -85,7 +85,6 @@ import soy.engindearing.omnitak.mobile.ui.components.TacticalMap
 import soy.engindearing.omnitak.mobile.ui.components.styleJsonForProvider
 import soy.engindearing.omnitak.mobile.ui.components.ToolEntry
 import soy.engindearing.omnitak.mobile.ui.components.ToolsDrawer
-import soy.engindearing.omnitak.mobile.ui.components.rememberLocationPermission
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

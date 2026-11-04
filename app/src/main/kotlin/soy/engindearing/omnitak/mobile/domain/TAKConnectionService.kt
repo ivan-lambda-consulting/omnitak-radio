@@ -99,7 +99,11 @@ class TAKConnectionService : Service() {
     private fun enterForeground(notification: Notification): Int? {
         for (types in foregroundTypeCandidates(Build.VERSION.SDK_INT, hasLocationPermission())) {
             try {
-                startForeground(NOTIFICATION_ID, notification, types)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(NOTIFICATION_ID, notification, types)
+                } else {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
                 return types
             } catch (e: SecurityException) {
                 Log.w(TAG, "foreground start refused for types=$types: ${e.message}")
