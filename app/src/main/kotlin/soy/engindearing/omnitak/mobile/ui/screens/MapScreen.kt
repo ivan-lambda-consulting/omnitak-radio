@@ -106,7 +106,7 @@ private const val DRAWING_TAP_TOLERANCE_PX = 24f
 private const val CONTACT_TAP_DEFER_PX = 72.0
 
 @Composable
-fun MapScreen(onOpenTab: (String) -> Unit = {}) {
+fun MapScreen(locationGranted: Boolean, onOpenTab: (String) -> Unit = {}) {
     val app = LocalContext.current.applicationContext as OmniTAKApp
     // Issue #89 — status-bar inset in dp. enableEdgeToEdge lets content draw
     // under the system bars; overlays anchored near the top (compass, MapLibre
@@ -195,13 +195,9 @@ fun MapScreen(onOpenTab: (String) -> Unit = {}) {
         }
     }
 
-    val locationGranted by rememberLocationPermission()
-    // GAP-030b — start the FusedLocationProviderClient as soon as we have
-    // permission. Idempotent, safe to re-invoke on every recomposition.
+    // The visible Activity / location foreground service own GPS updates;
+    // leaving this screen must not interrupt PLI or location acquisition.
     val selfFix by app.locationProvider.fix.collectAsState()
-    LaunchedEffect(locationGranted) {
-        if (locationGranted) app.locationProvider.start()
-    }
     var radialAnchor by remember { mutableStateOf<Offset?>(null) }
     var radialLatLng by remember { mutableStateOf<LatLng?>(null) }
     var markerSheetLatLng by remember { mutableStateOf<LatLng?>(null) }

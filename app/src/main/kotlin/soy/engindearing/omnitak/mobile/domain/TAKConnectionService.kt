@@ -17,6 +17,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import soy.engindearing.omnitak.mobile.MainActivity
+import soy.engindearing.omnitak.mobile.OmniTAKApp
 import soy.engindearing.omnitak.mobile.R
 
 /**
@@ -49,20 +50,29 @@ class TAKConnectionService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val linkLabel = intent?.getStringExtra(EXTRA_LINK_LABEL) ?: "TAK Server"
-        val entered = enterForeground(buildNotification(linkLabel))
+        val foregroundType = enterForeground(buildNotification(linkLabel))
         // A stop() that arrived between startForegroundService() and this
         // call was parked (see [stop]); honour it now that the promise to
         // call startForeground() has been kept.
         val stopRequested = gate.startDelivered()
-        if (!entered || stopRequested) {
-            if (entered) stopForeground(STOP_FOREGROUND_REMOVE)
+        if (foregroundType == null || stopRequested) {
+            if (foregroundType != null) stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
         }
+        (application as OmniTAKApp).radioLocationSession.serviceForegrounded(
+            locationType = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+                foregroundType and ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION != 0,
+        )
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        (application as OmniTAKApp).radioLocationSession.serviceStopped()
+        super.onDestroy()
+    }
 
     /**
      * Android 15+: a time-limited foreground service type has used up its
@@ -72,6 +82,7 @@ class TAKConnectionService : Service() {
      */
     override fun onTimeout(startId: Int, fgsType: Int) {
         Log.w(TAG, "foreground service time limit reached (type=$fgsType); stopping")
+        (application as OmniTAKApp).radioLocationSession.serviceStopped()
         notifyPaused()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -85,18 +96,18 @@ class TAKConnectionService : Service() {
      * IllegalStateException) when the app is in the background or a
      * time-limited type is exhausted.
      */
-    private fun enterForeground(notification: Notification): Boolean {
+    private fun enterForeground(notification: Notification): Int? {
         for (types in foregroundTypeCandidates(Build.VERSION.SDK_INT, hasLocationPermission())) {
             try {
                 startForeground(NOTIFICATION_ID, notification, types)
-                return true
+                return types
             } catch (e: SecurityException) {
                 Log.w(TAG, "foreground start refused for types=$types: ${e.message}")
             } catch (e: IllegalStateException) {
                 Log.w(TAG, "foreground start refused for types=$types: ${e.message}")
             }
         }
-        return false
+        return null
     }
 
     private fun hasLocationPermission(): Boolean =
@@ -114,8 +125,10 @@ class TAKConnectionService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("OmniTAK active")
-            .setContentText("Sharing position over $linkLabel")
+            .setContentTitle("OmniTAK Radio active")
+            // A dataSync fallback or missing permission can keep the link up
+            // without GPS; do not imply that PLI is flowing in that case.
+            .setContentText("Link: $linkLabel")
             .setSmallIcon(R.mipmap.app_icon)
             .setOngoing(true)
             .setSilent(true)

@@ -82,8 +82,13 @@ class MainActivity : ComponentActivity() {
         lifecycle.addObserver(
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
+                    app.radioLocationSession.permissionChanged()
                     app.serverManager.reconnectIfNeeded()
                     app.locationProvider.requestImmediateFix()
+                } else if (event == Lifecycle.Event.ON_START) {
+                    app.radioLocationSession.activityVisible(true)
+                } else if (event == Lifecycle.Event.ON_STOP) {
+                    app.radioLocationSession.activityVisible(false)
                 }
             },
         )

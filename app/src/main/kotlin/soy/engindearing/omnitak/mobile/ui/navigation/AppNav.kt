@@ -50,6 +50,7 @@ import soy.engindearing.omnitak.mobile.ui.components.ToolbarAddPalette
 import soy.engindearing.omnitak.mobile.ui.components.ToolbarCatalog
 import soy.engindearing.omnitak.mobile.ui.components.ToolbarEditBus
 import soy.engindearing.omnitak.mobile.ui.components.ToolsLauncherSheet
+import soy.engindearing.omnitak.mobile.ui.components.rememberLocationPermission
 import soy.engindearing.omnitak.mobile.ui.screens.AboutScreen
 import soy.engindearing.omnitak.mobile.ui.screens.AddServerScreen
 import soy.engindearing.omnitak.mobile.ui.screens.ChatScreen
@@ -69,6 +70,14 @@ fun AppNav() {
     val app = LocalContext.current.applicationContext as OmniTAKApp
     val prefs by app.userPrefsStore.prefs.collectAsState(initial = UserPrefs())
     val scope = rememberCoroutineScope()
+    // Ask once for the whole radio UI, not only while MapScreen is composed.
+    val locationGranted by rememberLocationPermission()
+    LaunchedEffect(locationGranted) {
+        app.radioLocationSession.permissionChanged()
+        // A connection that began without permission may be on the dataSync
+        // fallback; retry its location foreground type while the UI is visible.
+        if (locationGranted) app.refreshConnectionService()
+    }
 
     // Issue #97 — keep-screen-on, hoisted to the single-Activity / NavHost
     // scope. AppNav hosts every destination, so applying FLAG_KEEP_SCREEN_ON
@@ -306,7 +315,7 @@ fun AppNav() {
             modifier = Modifier.padding(inner),
         ) {
             composable("map") {
-                MapScreen(onOpenTab = { route -> navigateTo(route) })
+                MapScreen(locationGranted = locationGranted, onOpenTab = { route -> navigateTo(route) })
             }
             composable("servers") {
                 ServersScreen(

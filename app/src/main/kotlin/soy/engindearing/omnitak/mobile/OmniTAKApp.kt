@@ -703,6 +703,22 @@ class OmniTAKApp : Application() {
         broadcasterPrefsJob = null
     }
     val locationProvider: LocationProvider by lazy { LocationProvider(this) }
+    /** One GPS subscription shared by the visible app and the location FGS.
+     *  Neither a map composable nor a dataSync-only fallback owns it. */
+    val radioLocationSession: soy.engindearing.omnitak.mobile.domain.RadioLocationSession by lazy {
+        soy.engindearing.omnitak.mobile.domain.RadioLocationSession(
+            hasPermission = {
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    this, android.Manifest.permission.ACCESS_FINE_LOCATION,
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                    androidx.core.content.ContextCompat.checkSelfPermission(
+                        this, android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            },
+            startUpdates = { locationProvider.start() },
+            stopUpdates = { locationProvider.stop() },
+        )
+    }
     // #83 — device compass heading for the Cesium triangle self-marker, so it
     // rotates with the operator's facing just like the 2D RenderMode.COMPASS
     // puck. Started/stopped by MapScreen only while the globe is on screen.
