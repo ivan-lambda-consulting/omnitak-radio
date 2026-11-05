@@ -26,6 +26,12 @@ receives initial focus automatically after waking or opening the app. Tests of
 persistent rebinding and channel switching belong next to the input state
 machine when it is implemented.
 
+Current intended keypad flow: Enter/IME Next advances through server fields;
+Done on the password field focuses Save, then Select activates it. In a chat
+editor Enter sends a nonempty message, while Shift+Enter leaves multiline
+typing available. The certificate document picker and the XP5900's own IME
+still need a direct device check.
+
 **Acceptance boundary:** A normal app cannot read `/dev/input` to prove a
 vendor knob event, and synthetic `adb input keyevent` bypasses Sonim's hardware
 routing. Screen-off knob switching and fresh GPS/TAK on the XP5900 remain
