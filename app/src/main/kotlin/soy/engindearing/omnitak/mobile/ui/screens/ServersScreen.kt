@@ -173,7 +173,9 @@ fun ServersScreen(
             OutlinedButton(
                 onClick = {
                     importError = null
-                    picker.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
+                    runCatching {
+                        picker.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
+                    }.onFailure { importError = "No document picker available on this device" }
                 },
                 enabled = !importing,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
