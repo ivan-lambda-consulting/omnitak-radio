@@ -32,6 +32,13 @@ editor Enter sends a nonempty message, while Shift+Enter leaves multiline
 typing available. The certificate document picker and the XP5900's own IME
 still need a direct device check.
 
+The Servers screen can pick an ATAK ZIP containing `server.pref`, a client
+`.p12`, and optionally a PEM or PKCS12 CA truststore. It previews the endpoint
+before importing or connecting; ZIP size and extracted data are bounded.
+The emulator checks Import focus and simulates a selected ZIP to exercise the
+preview without writing a server; it does not prove that the XP5900's system
+document picker is button-operable.
+
 **Acceptance boundary:** A normal app cannot read `/dev/input` to prove a
 vendor knob event, and synthetic `adb input keyevent` bypasses Sonim's hardware
 routing. Screen-off knob switching and fresh GPS/TAK on the XP5900 remain

@@ -10,7 +10,7 @@ The fork retains the upstream Kotlin namespace and Apache-2.0 attribution. TAK c
 
 ## Capabilities currently inherited (not the complete radio feature set)
 
-- **TAK Server connectivity**: TCP / TLS / mTLS with client-certificate enrollment
+- **TAK Server connectivity**: TCP / TLS / mTLS with client-certificate enrollment and reviewed ATAK ZIP import
 - **Cursor-on-Target**: CoT XML parser, contact roster, server messaging and own position reporting
 - **Meshtastic**: TCP connection to Meshtastic mesh radios
 - **Multi-server management**: connect to multiple TAK servers

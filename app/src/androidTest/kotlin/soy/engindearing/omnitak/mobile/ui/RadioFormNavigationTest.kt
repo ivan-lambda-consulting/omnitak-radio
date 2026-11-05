@@ -1,13 +1,20 @@
 package soy.engindearing.omnitak.mobile.ui
 
 import android.view.KeyEvent
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivityResultRegistryOwner
+import androidx.activity.result.ActivityResultRegistry
+import androidx.activity.result.ActivityResultRegistryOwner
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performKeyInput
@@ -15,6 +22,8 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.core.app.ActivityOptionsCompat
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
@@ -28,6 +37,13 @@ import soy.engindearing.omnitak.mobile.ui.screens.ServersScreen
 import soy.engindearing.omnitak.mobile.ui.screens.MessageComposer
 import soy.engindearing.omnitak.mobile.OmniTAKApp
 import soy.engindearing.omnitak.mobile.data.TAKServer
+import soy.engindearing.omnitak.mobile.domain.TakServerPackage
+import soy.engindearing.omnitak.mobile.ui.screens.TakZipPreviewDialog
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+import java.io.File
 
 @OptIn(ExperimentalTestApi::class)
 class RadioFormNavigationTest {
@@ -138,6 +154,10 @@ class RadioFormNavigationTest {
             )
         }
         enterKeyboardMode()
+        compose.onNodeWithText("Import ATAK ZIP").assertIsDisplayed()
+        compose.onNodeWithText("Import ATAK ZIP")
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNodeWithText("Import ATAK ZIP").assertIsFocused()
         compose.onNodeWithContentDescription("Add server").assertIsDisplayed()
         compose.onNodeWithContentDescription("Add server")
             .performSemanticsAction(SemanticsActions.RequestFocus)
@@ -148,6 +168,74 @@ class RadioFormNavigationTest {
             .performSemanticsAction(SemanticsActions.RequestFocus)
         compose.onNodeWithText("Quick Connect").performKeyInput { pressKey(Key.DirectionCenter) }
         assertEquals("enroll", selected)
+    }
+
+    @Test fun ata_zip_preview_requires_explicit_select_before_import() {
+        val zipBytes = ByteArrayOutputStream().also { out ->
+            ZipOutputStream(out).use { zip ->
+                zip.putNextEntry(ZipEntry("server.pref"))
+                zip.write("<preferences><entry key=\"connectString0\">radio.test:8089:ssl</entry>".toByteArray())
+                zip.write("<entry key=\"certificateLocation\">client.p12</entry></preferences>".toByteArray())
+                zip.closeEntry()
+                zip.putNextEntry(ZipEntry("client.p12"))
+                zip.write(byteArrayOf(1, 2, 3))
+                zip.closeEntry()
+            }
+        }.toByteArray()
+        val preview = TakServerPackage.read(ByteArrayInputStream(zipBytes), "team.zip")
+        var confirmed = false
+        compose.setContent {
+            TakZipPreviewDialog(preview, onConfirm = { confirmed = true }, onDismiss = {})
+        }
+        // AlertDialog owns a separate window, so the Activity itself is no longer focused.
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_DPAD_DOWN)
+        compose.waitForIdle()
+        compose.onNodeWithText("radio.test:8089", substring = true).assertIsDisplayed()
+        assertTrue("preflight must not import anything", !confirmed)
+        compose.onNodeWithText("Import & connect").performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNodeWithText("Import & connect").performKeyInput { pressKey(Key.DirectionCenter) }
+        assertTrue(confirmed)
+    }
+
+    @Test fun selecting_a_zip_opens_preflight_without_writing_a_server() {
+        val file = File(compose.activity.cacheDir, "radio-zip-picker-test.zip")
+        val before = (compose.activity.application as OmniTAKApp).serverManager.servers.value
+        ZipOutputStream(file.outputStream()).use { zip ->
+            zip.putNextEntry(ZipEntry("server.pref"))
+            zip.write("<preferences><entry key=\"connectString0\">preview.test:8089:tcp</entry></preferences>".toByteArray())
+            zip.closeEntry()
+        }
+        var launched: Intent? = null
+        val registry = object : ActivityResultRegistry() {
+            override fun <I, O> onLaunch(
+                requestCode: Int, contract: ActivityResultContract<I, O>, input: I, options: ActivityOptionsCompat?,
+            ) {
+                launched = contract.createIntent(compose.activity, input)
+                dispatchResult(requestCode, Uri.fromFile(file))
+            }
+        }
+        val owner = object : ActivityResultRegistryOwner { override val activityResultRegistry = registry }
+        try {
+            compose.setContent {
+                CompositionLocalProvider(LocalActivityResultRegistryOwner provides owner) {
+                    ServersScreen(onAdd = {}, onQuickConnect = {})
+                }
+            }
+            enterKeyboardMode()
+            compose.onNodeWithText("Import ATAK ZIP")
+                .performSemanticsAction(SemanticsActions.RequestFocus)
+            compose.onNodeWithText("Import ATAK ZIP").performKeyInput { pressKey(Key.DirectionCenter) }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithText("Import TAK server?").fetchSemanticsNodes().isNotEmpty()
+            }
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT, launched?.action)
+            assertTrue(launched?.getStringArrayExtra(Intent.EXTRA_MIME_TYPES)?.contains("application/zip") == true)
+            compose.onNodeWithText("preview.test:8089", substring = true).assertIsDisplayed()
+            assertEquals(before, (compose.activity.application as OmniTAKApp).serverManager.servers.value)
+            compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick)
+        } finally {
+            file.delete()
+        }
     }
 
     @Test fun message_ime_send_trims_text_without_touch_or_network() {

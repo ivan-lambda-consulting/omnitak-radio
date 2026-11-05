@@ -1,5 +1,7 @@
 package soy.engindearing.omnitak.mobile.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,10 +32,12 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -44,6 +48,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,8 +60,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import soy.engindearing.omnitak.mobile.OmniTAKApp
 import soy.engindearing.omnitak.mobile.data.TAKServer
+import soy.engindearing.omnitak.mobile.domain.TakServerPackage
 import soy.engindearing.omnitak.mobile.domain.ServerHealth
 import soy.engindearing.omnitak.mobile.domain.ServerHealthProjection
 import soy.engindearing.omnitak.mobile.i18n.Loc
@@ -71,8 +82,28 @@ fun ServersScreen(
     onQuickConnect: () -> Unit = {},
     onScanQr: () -> Unit = {},
 ) {
-    val app = LocalContext.current.applicationContext as OmniTAKApp
+    val context = LocalContext.current
+    val app = context.applicationContext as OmniTAKApp
     val manager = app.serverManager
+    val scope = rememberCoroutineScope()
+    var candidate by remember { mutableStateOf<TakServerPackage?>(null) }
+    var importError by remember { mutableStateOf<String?>(null) }
+    var importing by remember { mutableStateOf(false) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            importing = true
+            val parsed = runCatching {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)?.use {
+                        TakServerPackage.read(it, "TAK server")
+                    } ?: error("Cannot open selected ZIP")
+                }
+            }
+            parsed.onSuccess { candidate = it; importError = null }
+                .onFailure { importError = takZipError(it) }
+            importing = false
+        }
+    }
     val servers by manager.servers.collectAsState()
     val active by manager.activeServer.collectAsState()
     // Per-server live state — every card reflects its own connection, not
@@ -138,38 +169,68 @@ fun ServersScreen(
             }
         },
     ) { inner: PaddingValues ->
-        if (servers.isEmpty()) {
-            EmptyServers(Modifier.padding(inner))
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(inner),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(items = servers, key = { it.id }) { server ->
-                    // #209: the same projection the map's top bar uses.
-                    val health = ServerHealthProjection.project(
-                        enabled = server.enabled,
-                        state = serverStates[server.id],
-                    )
-                    ServerCard(
-                        server = server,
-                        isActive = active?.id == server.id,
-                        health = health,
-                        onTap = { manager.setActive(server.id) },
-                        onToggle = { manager.toggleEnabled(server.id) },
-                        onDelete = { pendingDelete = server },
-                        onConnectToggle = {
-                            // Connect/disconnect just this server — others stay up.
-                            if (health.isLive) manager.disconnect(server.id)
-                            else manager.connect(server)
-                        },
-                    )
+        Column(Modifier.fillMaxSize().padding(inner)) {
+            OutlinedButton(
+                onClick = {
+                    importError = null
+                    picker.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
+                },
+                enabled = !importing,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) { Text(if (importing) "Reading ZIP…" else "Import ATAK ZIP") }
+            importError?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
+            if (servers.isEmpty()) {
+                EmptyServers(Modifier.weight(1f))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(items = servers, key = { it.id }) { server ->
+                        val health = ServerHealthProjection.project(
+                            enabled = server.enabled,
+                            state = serverStates[server.id],
+                        )
+                        ServerCard(
+                            server = server,
+                            isActive = active?.id == server.id,
+                            health = health,
+                            onTap = { manager.setActive(server.id) },
+                            onToggle = { manager.toggleEnabled(server.id) },
+                            onDelete = { pendingDelete = server },
+                            onConnectToggle = {
+                                if (health.isLive) manager.disconnect(server.id)
+                                else manager.connect(server)
+                            },
+                        )
+                    }
                 }
             }
         }
+    }
+
+    candidate?.let { selected ->
+        TakZipPreviewDialog(
+            selected,
+            onDismiss = { candidate = null },
+            onConfirm = {
+                candidate = null
+                importing = true
+                scope.launch {
+                    val result = runCatching {
+                        withContext(Dispatchers.IO) {
+                            require(manager.servers.value.none { it.matchesEndpoint(selected.server) }) {
+                                "Server already configured"
+                            }
+                            selected.install(app.certVault, manager::addServer)
+                        }
+                    }
+                    result.onFailure { importError = takZipError(it) }
+                    importing = false
+                }
+            },
+        )
     }
 
     pendingDelete?.let { server ->
@@ -193,6 +254,25 @@ fun ServersScreen(
         )
     }
 }
+
+@Composable
+internal fun TakZipPreviewDialog(candidate: TakServerPackage, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val details = if (candidate.server.useTLS) {
+        "(TLS)\nClient: ${candidate.clientFileName}\nCA: ${candidate.caFileName ?: "system trust"}"
+    } else {
+        "(TCP)\nNo transport encryption"
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Import TAK server?") },
+        text = { Text("${candidate.server.name}\n${candidate.server.host}:${candidate.server.port} $details\n\nCertificates are checked on import.") },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Import & connect") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+private fun takZipError(e: Throwable): String =
+    if (e is IllegalArgumentException) e.message ?: "Invalid ATAK ZIP" else "Could not read ATAK ZIP"
 
 @Composable
 private fun EmptyServers(modifier: Modifier = Modifier) {
@@ -219,10 +299,8 @@ private fun EmptyServers(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Scan (▣) a TAK/ATAK enrollment QR to enroll and connect in one " +
-                "tap, tap + to enter a server manually, or Quick Connect (⚡) " +
-                "to auto-enroll a certificate from a TAK Server's enrollment " +
-                "endpoint.",
+            "Select Import ATAK ZIP for a server package, use + to enter a server " +
+                "manually, or Quick Connect to enroll a certificate.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
         )

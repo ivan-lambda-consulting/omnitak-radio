@@ -29,4 +29,4 @@ result=$("$adb" -s "$serial" shell am instrument -w \
   -e class soy.engindearing.omnitak.mobile.ui.RadioButtonNavigationTest,soy.engindearing.omnitak.mobile.ui.RadioFormNavigationTest \
   com.ivanlambdaconsulting.omnitakradio.test/androidx.test.runner.AndroidJUnitRunner)
 printf '%s\n' "$result"
-grep -q 'OK (17 tests)' <<< "$result"
+grep -q 'OK (19 tests)' <<< "$result"
