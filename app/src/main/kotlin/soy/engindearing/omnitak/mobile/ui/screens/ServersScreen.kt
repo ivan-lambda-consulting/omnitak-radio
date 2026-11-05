@@ -2,6 +2,7 @@ package soy.engindearing.omnitak.mobile.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -90,6 +91,8 @@ fun ServersScreen(
 ) {
     val compact = LocalConfiguration.current.screenWidthDp < 360
     var showMore by remember { mutableStateOf(false) }
+    var moreFocused by remember { mutableStateOf(false) }
+    var importFocused by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val app = context.applicationContext as OmniTAKApp
     val manager = app.serverManager
@@ -136,7 +139,11 @@ fun ServersScreen(
                 actions = {
                     if (compact) {
                         Box {
-                            TextButton(onClick = { showMore = true }) { Text("Add / More") }
+                            TextButton(
+                                onClick = { showMore = true },
+                                modifier = Modifier.onFocusChanged { moreFocused = it.isFocused },
+                                border = if (moreFocused) BorderStroke(2.dp, Color.White) else null,
+                            ) { Text("Add / More") }
                             DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
                                 DropdownMenuItem(text = { Text("Add server") }, onClick = {
                                     showMore = false
@@ -209,7 +216,10 @@ fun ServersScreen(
                     }.onFailure { importError = "No document picker available on this device" }
                 },
                 enabled = !importing,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                    .onFocusChanged { importFocused = it.isFocused },
+                border = BorderStroke(if (importFocused) 3.dp else 1.dp,
+                    if (importFocused) Color.White else MaterialTheme.colorScheme.outline),
             ) { Text(if (importing) "Reading ZIP…" else "Import ATAK ZIP") }
             importError?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
             if (servers.isEmpty()) {
