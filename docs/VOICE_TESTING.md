@@ -70,5 +70,8 @@ the binding. No Sonim key code is preassigned.
   `third_party/humla` source; see its LICENSE. The repository's Apache-2.0
   source retains its notices, but distributing a combined app requires a
   GPLv3-compatible source/notice review. The upstream pinned Opus/CELT/Speex
-  revisions are old; assess native-library security before installing a voice
+  revisions are old. The build copies the pinned Opus source and applies the
+  [upstream CVE-2017-0381 fix](https://github.com/xiph/opus/commit/70a3d641b760b3d313b6025f82aed93a460720e5)
+  before compiling, without modifying the tracked submodule. That single fix
+  is not a full native-library audit: assess the rest before installing a voice
   build on a device carrying live TAK credentials or shipping a release APK.

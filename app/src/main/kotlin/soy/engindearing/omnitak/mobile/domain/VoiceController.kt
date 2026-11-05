@@ -84,6 +84,7 @@ class VoiceController(context: Context) {
     }
 
     fun connect(config: VoiceConfig): Boolean {
+        // shortcut: use Mumble's root channel until explicit radio preset-to-voice-channel mapping lands.
         if (!config.isValid() || ContextCompat.checkSelfPermission(app, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED) {
             _status.value = VoiceStatus("Enter a voice server and grant microphone access")
