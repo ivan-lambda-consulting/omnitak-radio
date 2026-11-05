@@ -34,6 +34,8 @@ import soy.engindearing.omnitak.mobile.ui.screens.AddServerForm
 import soy.engindearing.omnitak.mobile.ui.screens.EnrollServerScreen
 import soy.engindearing.omnitak.mobile.ui.screens.SettingsScreen
 import soy.engindearing.omnitak.mobile.ui.screens.ServersScreen
+import soy.engindearing.omnitak.mobile.ui.screens.ServerCard
+import soy.engindearing.omnitak.mobile.domain.ServerHealth
 import soy.engindearing.omnitak.mobile.ui.screens.MessageComposer
 import soy.engindearing.omnitak.mobile.OmniTAKApp
 import soy.engindearing.omnitak.mobile.data.TAKServer
@@ -154,20 +156,45 @@ class RadioFormNavigationTest {
             )
         }
         enterKeyboardMode()
+        val title = compose.onNodeWithText("Servers").fetchSemanticsNode().boundsInRoot
+        assertTrue("server title wraps on a compact screen: $title", title.width >= 50f && title.height <= 32f)
         compose.onNodeWithText("Import ATAK ZIP").assertIsDisplayed()
         compose.onNodeWithText("Import ATAK ZIP")
             .performSemanticsAction(SemanticsActions.RequestFocus)
         compose.onNodeWithText("Import ATAK ZIP").assertIsFocused()
-        compose.onNodeWithContentDescription("Add server").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Add server")
+        compose.onNodeWithText("Add / More").assertIsDisplayed()
+        compose.onNodeWithText("Add / More")
             .performSemanticsAction(SemanticsActions.RequestFocus)
-        compose.onNodeWithContentDescription("Add server").performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.onNodeWithText("Add / More").performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.onNodeWithText("Add server").performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNodeWithText("Add server").performKeyInput { pressKey(Key.DirectionCenter) }
         assertEquals("add", selected)
+        compose.onNodeWithText("Add / More").performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNodeWithText("Add / More").performKeyInput { pressKey(Key.DirectionCenter) }
         compose.onNodeWithText("Quick Connect").assertIsDisplayed()
         compose.onNodeWithText("Quick Connect")
             .performSemanticsAction(SemanticsActions.RequestFocus)
         compose.onNodeWithText("Quick Connect").performKeyInput { pressKey(Key.DirectionCenter) }
         assertEquals("enroll", selected)
+    }
+
+    @Test fun server_name_stays_readable_on_compact_screen() {
+        val server = TAKServer(name = "A long test server name", host = "radio.test", port = 8089, useTLS = true)
+        compose.setContent {
+            ServerCard(
+                server = server, isActive = true, health = ServerHealth.CONNECTED, compact = true,
+                onTap = {}, onToggle = {}, onDelete = {}, onConnectToggle = {},
+            )
+        }
+        val nameBounds = compose.onNodeWithText(server.name).fetchSemanticsNode().boundsInRoot
+        assertTrue("server name wraps on the compact screen: $nameBounds",
+            nameBounds.width >= 100f && nameBounds.height <= 32f)
+        enterKeyboardMode()
+        compose.onNodeWithText("Actions").performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNodeWithText("Actions").performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.onNodeWithText("Disconnect").assertIsDisplayed()
+        compose.onNodeWithText("Disable").assertIsDisplayed()
+        compose.onNodeWithText("Delete").assertIsDisplayed()
     }
 
     @Test fun ata_zip_preview_requires_explicit_select_before_import() {

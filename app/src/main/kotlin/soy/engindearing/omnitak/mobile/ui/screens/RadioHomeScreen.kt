@@ -1,10 +1,14 @@
 package soy.engindearing.omnitak.mobile.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -12,8 +16,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import soy.engindearing.omnitak.mobile.OmniTAKApp
 import soy.engindearing.omnitak.mobile.domain.ConnectionState
@@ -35,19 +45,27 @@ internal fun RadioHomeContent(
     onOpen: (String) -> Unit,
 ) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
+            .verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("OmniTAK Radio")
-        Text(connectionLabel(connection))
+        Text(connectionLabel(connection), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(if (location == RadioLocationSession.Status.RUNNING) "GPS updating" else "GPS unavailable")
-        Button(onClick = { onOpen("chat") }, modifier = Modifier.fillMaxWidth()) {
-            Text("Contacts & messages")
-        }
-        Button(onClick = { onOpen("servers") }, modifier = Modifier.fillMaxWidth()) { Text("TAK servers") }
-        Button(onClick = { onOpen("mesh") }, modifier = Modifier.fillMaxWidth()) { Text("Mesh") }
-        Button(onClick = { onOpen("settings") }, modifier = Modifier.fillMaxWidth()) { Text("Settings") }
+        RadioAction("Contacts & messages", "chat", onOpen)
+        RadioAction("TAK servers", "servers", onOpen)
+        RadioAction("Mesh", "mesh", onOpen)
+        RadioAction("Settings", "settings", onOpen)
     }
+}
+
+@Composable
+private fun RadioAction(label: String, route: String, onOpen: (String) -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Button(
+        onClick = { onOpen(route) },
+        modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
+        border = if (focused) BorderStroke(3.dp, Color.White) else null,
+    ) { Text(label) }
 }
 
 internal fun connectionLabel(state: ConnectionState): String = when (state) {

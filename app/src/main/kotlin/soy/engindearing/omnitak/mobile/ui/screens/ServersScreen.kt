@@ -3,6 +3,7 @@ package soy.engindearing.omnitak.mobile.ui.screens
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +33,8 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -55,10 +58,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -82,6 +88,8 @@ fun ServersScreen(
     onQuickConnect: () -> Unit = {},
     onScanQr: () -> Unit = {},
 ) {
+    val compact = LocalConfiguration.current.screenWidthDp < 360
+    var showMore by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val app = context.applicationContext as OmniTAKApp
     val manager = app.serverManager
@@ -122,9 +130,29 @@ fun ServersScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("TAK Servers", color = MaterialTheme.colorScheme.onBackground)
+                    Text(if (compact) "Servers" else "TAK Servers",
+                        color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
                 },
                 actions = {
+                    if (compact) {
+                        Box {
+                            TextButton(onClick = { showMore = true }) { Text("Add / More") }
+                            DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }) {
+                                DropdownMenuItem(text = { Text("Add server") }, onClick = {
+                                    showMore = false
+                                    onAdd()
+                                })
+                                DropdownMenuItem(text = { Text("Quick Connect") }, onClick = {
+                                    showMore = false
+                                    onQuickConnect()
+                                })
+                                DropdownMenuItem(text = { Text("Scan enrollment QR") }, onClick = {
+                                    showMore = false
+                                    onScanQr()
+                                })
+                            }
+                        }
+                    } else {
                     // #100 — scan a standard TAK / ATAK enrollment QR
                     // (tak://…/enroll) to CSR-enroll a cert and connect. The
                     // reliable in-app on-ramp that doesn't depend on the OS
@@ -152,6 +180,7 @@ fun ServersScreen(
                         Spacer(Modifier.width(4.dp))
                         Text("Quick Connect", color = TacticalAccent)
                     }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = TacticalBackground,
@@ -160,12 +189,14 @@ fun ServersScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAdd,
-                containerColor = TacticalAccent,
-                contentColor = TacticalBackground,
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add server")
+            if (!compact) {
+                FloatingActionButton(
+                    onClick = onAdd,
+                    containerColor = TacticalAccent,
+                    contentColor = TacticalBackground,
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add server")
+                }
             }
         },
     ) { inner: PaddingValues ->
@@ -182,7 +213,7 @@ fun ServersScreen(
             ) { Text(if (importing) "Reading ZIP…" else "Import ATAK ZIP") }
             importError?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
             if (servers.isEmpty()) {
-                EmptyServers(Modifier.weight(1f))
+                EmptyServers(Modifier.weight(1f), compact)
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -198,6 +229,7 @@ fun ServersScreen(
                             server = server,
                             isActive = active?.id == server.id,
                             health = health,
+                            compact = compact,
                             onTap = { manager.setActive(server.id) },
                             onToggle = { manager.toggleEnabled(server.id) },
                             onDelete = { pendingDelete = server },
@@ -277,48 +309,102 @@ private fun takZipError(e: Throwable): String =
     if (e is IllegalArgumentException) e.message ?: "Invalid ATAK ZIP" else "Could not read ATAK ZIP"
 
 @Composable
-private fun EmptyServers(modifier: Modifier = Modifier) {
+private fun EmptyServers(modifier: Modifier = Modifier, compact: Boolean = false) {
     // #207 — the hint text is taller than a landscape phone viewport.
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(32.dp),
+            .padding(if (compact) 12.dp else 32.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            Icons.Filled.Storage,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = TacticalAccent.copy(alpha = 0.6f),
-        )
-        Spacer(Modifier.height(16.dp))
+        if (!compact) {
+            Icon(
+                Icons.Filled.Storage,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = TacticalAccent.copy(alpha = 0.6f),
+            )
+            Spacer(Modifier.height(16.dp))
+        }
         Text(
             "No TAK servers configured",
-            style = MaterialTheme.typography.titleLarge,
+            style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
         )
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(if (compact) 4.dp else 8.dp))
         Text(
-            "Select Import ATAK ZIP for a server package, use + to enter a server " +
+            if (compact) "Use Add / More or Import ATAK ZIP."
+            else "Select Import ATAK ZIP for a server package, use + to enter a server " +
                 "manually, or Quick Connect to enroll a certificate.",
-            style = MaterialTheme.typography.bodyLarge,
+            style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
         )
     }
 }
 
 @Composable
-private fun ServerCard(
+internal fun ServerCard(
     server: TAKServer,
     isActive: Boolean,
     health: ServerHealth,
+    compact: Boolean = false,
     onTap: () -> Unit,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
     onConnectToggle: () -> Unit,
 ) {
+    if (compact) {
+        var focused by remember { mutableStateOf(false) }
+        var showActions by remember { mutableStateOf(false) }
+        val shape = RoundedCornerShape(10.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth().onFocusChanged { focused = it.hasFocus }
+                .clip(shape).background(TacticalSurface)
+                .border(if (focused) 2.dp else 0.dp, if (focused) Color.White else Color.Transparent, shape)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(10.dp).clip(CircleShape).background(health.dotColor()))
+                Spacer(Modifier.width(8.dp))
+                Text(server.name, modifier = Modifier.weight(1f), maxLines = 1,
+                    overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
+                if (server.useTLS) Icon(Icons.Filled.Lock, contentDescription = "TLS",
+                    modifier = Modifier.size(14.dp), tint = TacticalAccent)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("${server.host}:${server.port}", modifier = Modifier.weight(1f),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall)
+                Text(health.name.lowercase().replaceFirstChar(Char::uppercaseChar),
+                    style = MaterialTheme.typography.labelSmall)
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onTap) { Text(if (isActive) "Selected" else "Select") }
+                Box {
+                    TextButton(onClick = { showActions = true }) { Text("Actions") }
+                    DropdownMenu(expanded = showActions, onDismissRequest = { showActions = false }) {
+                        DropdownMenuItem(
+                            text = { Text(if (health.isLive) "Disconnect" else "Connect") },
+                            enabled = server.enabled,
+                            onClick = { showActions = false; onConnectToggle() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(if (server.enabled) "Disable" else "Enable") },
+                            onClick = { showActions = false; onToggle() },
+                        )
+                        DropdownMenuItem(text = { Text("Delete") }, onClick = {
+                            showActions = false
+                            onDelete()
+                        })
+                    }
+                }
+            }
+        }
+        return
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()

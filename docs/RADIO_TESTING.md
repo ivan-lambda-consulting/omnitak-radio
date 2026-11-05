@@ -44,3 +44,11 @@ vendor knob event, and synthetic `adb input keyevent` bypasses Sonim's hardware
 routing. Screen-off knob switching and fresh GPS/TAK on the XP5900 remain
 unverified until a real hardware stimulus/vendor callback is available. Do not
 mark those gates passed from emulator tests or a kernel `getevent` capture.
+
+For layout work on a connected XP5900, ADB already provides the needed
+inspection loop: `exec-out screencap -p` for a temporary screenshot,
+`uiautomator dump` for focus/bounds, and `input keyevent` for D-pad/Back.
+Keep captures outside the repository, remove the temporary hierarchy file
+from the phone, and avoid Send, Save, Import and connection controls when
+inspecting real TAK data. Android Studio's device mirror is not exposed to
+the agent; an extra MCP server is unnecessary for this limited workflow.

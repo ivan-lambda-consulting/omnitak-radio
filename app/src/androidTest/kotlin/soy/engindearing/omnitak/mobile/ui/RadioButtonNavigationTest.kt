@@ -49,6 +49,20 @@ class RadioButtonNavigationTest {
         assertEquals("servers", route)
     }
 
+    @Test fun compact_home_keeps_settings_fully_visible_with_long_server_name() {
+        compose.setContent {
+            RadioHomeContent(
+                ConnectionState.Connected("A deliberately long test server label for a small phone", true),
+                RadioLocationSession.Status.RUNNING,
+                onOpen = {},
+            )
+        }
+        val settings = compose.onNodeWithText("Settings").fetchSemanticsNode().boundsInRoot
+        val rootBottom = compose.onRoot().fetchSemanticsNode().boundsInRoot.bottom
+        assertTrue("Settings is clipped by the bottom edge: $settings / $rootBottom",
+            settings.height >= 40f && settings.bottom <= rootBottom - 16f)
+    }
+
     @Test fun compact_first_run_can_advance_with_select_without_touch() {
         var finished = false
         compose.setContent { OnboardingFlow(onComplete = { finished = true }) }
