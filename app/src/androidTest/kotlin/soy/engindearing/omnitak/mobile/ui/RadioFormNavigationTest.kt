@@ -147,6 +147,20 @@ class RadioFormNavigationTest {
         compose.onNodeWithText("Team").assertIsFocused()
     }
 
+    @Test fun hardware_select_opens_team_menu_without_changing_the_team() {
+        compose.setContent { SettingsScreen() }
+        focus("Team")
+        compose.onNodeWithText("Team").performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.onNodeWithText("White").assertIsDisplayed()
+    }
+
+    @Test fun hardware_enter_also_opens_team_menu() {
+        compose.setContent { SettingsScreen() }
+        focus("Team")
+        compose.onNodeWithText("Team").performKeyInput { pressKey(Key.Enter) }
+        compose.onNodeWithText("White").assertIsDisplayed()
+    }
+
     @Test fun server_setup_actions_are_reachable_on_compact_screen() {
         var selected: String? = null
         compose.setContent {
