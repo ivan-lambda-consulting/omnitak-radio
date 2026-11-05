@@ -16,6 +16,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "omnitak-radio"
 include(":app")
+include(":voice-humla")
 // Plugin SDK and the non-map diagnostics reference plugin.
 include(":plugins:plugin-sdk")
 include(":plugins:example-diagnostics")

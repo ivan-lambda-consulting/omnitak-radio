@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
@@ -20,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import soy.engindearing.omnitak.mobile.ui.onboarding.OnboardingFlow
 import soy.engindearing.omnitak.mobile.ui.screens.RadioHomeContent
+import soy.engindearing.omnitak.mobile.ui.screens.VoiceScreen
 import soy.engindearing.omnitak.mobile.domain.ConnectionState
 import soy.engindearing.omnitak.mobile.domain.RadioLocationSession
 
@@ -61,6 +63,44 @@ class RadioButtonNavigationTest {
         val rootBottom = compose.onRoot().fetchSemanticsNode().boundsInRoot.bottom
         assertTrue("Settings is clipped by the bottom edge: $settings / $rootBottom",
             settings.height >= 40f && settings.bottom <= rootBottom - 16f)
+    }
+
+    @Test fun select_opens_voice_from_radio_home_without_transmitting() {
+        var route: String? = null
+        compose.setContent {
+            RadioHomeContent(ConnectionState.Disconnected,
+                RadioLocationSession.Status.PERMISSION_REQUIRED, onOpen = { route = it })
+        }
+        enterKeyboardMode()
+        compose.onNodeWithText("Voice").performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNodeWithText("Voice").performKeyInput { pressKey(Key.DirectionCenter) }
+        assertEquals("voice", route)
+    }
+
+    @Test fun voice_screen_cannot_transmit_before_connect() {
+        compose.setContent { VoiceScreen() }
+        compose.onNodeWithText("CONNECT VOICE FIRST").assertExists()
+        compose.onNodeWithText("Voice disconnected").assertIsDisplayed()
+        enterKeyboardMode()
+        compose.onNodeWithContentDescription("Hold to talk")
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNodeWithText("CONNECT VOICE FIRST").assertIsDisplayed()
+        compose.onNodeWithText("Learn hardware PTT").assertExists()
+    }
+
+    @Test fun voice_ptt_learning_can_be_started_and_reset_without_touch() {
+        compose.setContent { VoiceScreen() }
+        enterKeyboardMode()
+        compose.onNodeWithText("Learn hardware PTT")
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNodeWithText("Learn hardware PTT")
+            .performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.onNodeWithText("Press a hardware PTT key").assertExists()
+        compose.onNodeWithText("Reset hardware PTT")
+            .performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.onNodeWithText("Reset hardware PTT")
+            .performKeyInput { pressKey(Key.DirectionCenter) }
+        compose.onNodeWithText("PTT key not bound").assertExists()
     }
 
     @Test fun compact_first_run_can_advance_with_select_without_touch() {

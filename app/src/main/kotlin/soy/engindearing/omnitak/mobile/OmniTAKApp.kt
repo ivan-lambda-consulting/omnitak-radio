@@ -598,6 +598,9 @@ class OmniTAKApp : Application() {
         soy.engindearing.omnitak.mobile.data.remoteid.RemoteIdScanner(this, remoteIdTrackStore)
     }
     val certVault: CertVault by lazy { CertVault(this) }
+    val voiceController: soy.engindearing.omnitak.mobile.domain.VoiceController by lazy {
+        soy.engindearing.omnitak.mobile.domain.VoiceController(this)
+    }
 
     // Off-grid mesh plan Step 1b — single app-owned broadcaster instance.
     // Null until startAppBroadcaster() is called. Thread-safe via @Volatile.

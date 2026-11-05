@@ -26,7 +26,7 @@ Baseline: [`engindearing-projects/OmniTAK-Android@d1569ae`](https://github.com/e
 4. Build first-run setup, radio home, channels, contacts, messages/canned replies, relative location, status and settings with deterministic D-pad/Select/Back focus. Test real Android permissions and text-entry flows on the non-touch XP5900, not just Compose previews.
 5. Move GPS start/stop to permission-aware app/service ownership, persist selected channel, and announce changes locally. With the XP5900 screen off, verify real knob input changes channel and causes a spoken or tone announcement while TAK connectivity, inbound chat and fresh PLI continue. Simulation alone does **not** satisfy this device gate. Investigate documented Sonim background input integration if ordinary events are unavailable.
 
-First prototype does **not** include a voice transport or live PTT; these follow a validated screen-off radio foundation. TAK groups, voice destinations and Meshtastic channels are different concepts and must not be equated by preset selection.
+The original prototype deferred voice. The operator has since made it P1: an experimental Mumble/ATAK Vx voice path is under development (see `docs/VOICE_TESTING.md`). Local emulator handshake and PTT state tests do not establish live ATAK Vx interoperability or screen-off XP5900 key delivery. TAK groups, Mumble channels and Meshtastic channels remain distinct and must not be equated by preset selection.
 
 ## Baseline verification / outstanding risks
 

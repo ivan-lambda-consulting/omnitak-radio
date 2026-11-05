@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
                     "action=${event.action} repeat=${event.repeatCount}",
             )
         }
+        if ((application as OmniTAKApp).voiceController.handleHardwareKey(event)) return true
         return super.dispatchKeyEvent(event)
     }
 
@@ -103,6 +104,8 @@ class MainActivity : ComponentActivity() {
                 } else if (event == Lifecycle.Event.ON_START) {
                     app.radioLocationSession.activityVisible(true)
                 } else if (event == Lifecycle.Event.ON_STOP) {
+                    app.voiceController.release()
+                    app.voiceController.cancelLearning()
                     app.radioLocationSession.activityVisible(false)
                 }
             },

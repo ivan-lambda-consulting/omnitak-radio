@@ -1,0 +1,22 @@
+services:
+  mumble:
+    image: mumblevoip/mumble-server:v1.5.915
+    ports:
+      - "${VOICE_LAN_IP:?Set the trusted LAN address}:64738:64738/tcp"
+      - "${VOICE_LAN_IP:?Set the trusted LAN address}:64738:64738/udp"
+    secrets:
+      - source: voice_password
+        target: MUMBLE_CONFIG_SERVER_PASSWORD
+      - source: admin_password
+        target: MUMBLE_SUPERUSER_PASSWORD
+    volumes:
+      - mumble_data:/data
+
+secrets:
+  voice_password:
+    file: ${VOICE_SECRETS_DIR:?Set an out-of-repo secrets directory}/voice_password
+  admin_password:
+    file: ${VOICE_SECRETS_DIR:?Set an out-of-repo secrets directory}/admin_password
+
+volumes:
+  mumble_data:

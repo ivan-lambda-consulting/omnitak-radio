@@ -29,6 +29,7 @@ import soy.engindearing.omnitak.mobile.ui.screens.ProfilesScreen
 import soy.engindearing.omnitak.mobile.ui.screens.RadioHomeScreen
 import soy.engindearing.omnitak.mobile.ui.screens.ServersScreen
 import soy.engindearing.omnitak.mobile.ui.screens.SettingsScreen
+import soy.engindearing.omnitak.mobile.ui.screens.VoiceScreen
 
 @Composable
 fun AppNav() {
@@ -60,6 +61,7 @@ fun AppNav() {
 
     NavHost(navController = nav, startDestination = "radio") {
         composable("radio") { RadioHomeScreen(onOpen = nav::navigate) }
+        composable("voice") { VoiceScreen() }
         composable("chat") { ChatScreen() }
         composable(
             "chat?convoId={convoId}",

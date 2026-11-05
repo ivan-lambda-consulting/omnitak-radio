@@ -127,6 +127,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":voice-humla"))
     // Plugin SDK and the bundled diagnostics reference plugin (OFF by default).
     // Compile-time modules only — no dynamic/remote code, so the app stays
     // Play-Store compliant.

@@ -1,0 +1,20 @@
+diff --git a/se/lublin/humla/net/HumlaSSLSocketFactory.java b/se/lublin/humla/net/HumlaSSLSocketFactory.java
+--- a/se/lublin/humla/net/HumlaSSLSocketFactory.java
++++ b/se/lublin/humla/net/HumlaSSLSocketFactory.java
+@@ -123,9 +123,5 @@ public class HumlaSSLSocketFactory {
+         public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+             mServerChain = chain;
+-            try {
+-                mDefaultTrustManager.checkServerTrusted(chain, authType);
+-            } catch (CertificateException e) {
+-                if(mTrustManager != null) mTrustManager.checkServerTrusted(chain, authType);
+-                else throw e;
+-            }
++            if (mTrustManager == null) throw new CertificateException("Voice server pin required");
++            mTrustManager.checkServerTrusted(chain, authType);
+         }
+@@ -134,3 +130,3 @@ public class HumlaSSLSocketFactory {
+         public X509Certificate[] getAcceptedIssuers() {
+-            return mDefaultTrustManager.getAcceptedIssuers();
++            return mTrustManager != null ? mTrustManager.getAcceptedIssuers() : new X509Certificate[0];
+         }

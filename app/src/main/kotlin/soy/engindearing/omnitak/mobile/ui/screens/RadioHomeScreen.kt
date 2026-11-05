@@ -3,6 +3,7 @@ package soy.engindearing.omnitak.mobile.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import soy.engindearing.omnitak.mobile.OmniTAKApp
@@ -47,10 +49,23 @@ internal fun RadioHomeContent(
     Column(
         Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text(connectionLabel(connection), maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(if (location == RadioLocationSession.Status.RUNNING) "GPS updating" else "GPS unavailable")
+        if (LocalConfiguration.current.screenWidthDp <= 320) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(when (connection) {
+                    is ConnectionState.Connected -> "TAK on"
+                    is ConnectionState.Connecting -> "TAK connecting"
+                    is ConnectionState.Failed -> "TAK failed"
+                    ConnectionState.Disconnected -> "TAK off"
+                })
+                Text(if (location == RadioLocationSession.Status.RUNNING) "GPS updating" else "GPS unavailable")
+            }
+        } else {
+            Text(connectionLabel(connection), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(if (location == RadioLocationSession.Status.RUNNING) "GPS updating" else "GPS unavailable")
+        }
+        RadioAction("Voice", "voice", onOpen)
         RadioAction("Contacts & messages", "chat", onOpen)
         RadioAction("TAK servers", "servers", onOpen)
         RadioAction("Mesh", "mesh", onOpen)
