@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -47,10 +48,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -311,7 +319,6 @@ private fun ConversationDetailView(
     multiServer: Boolean,
     serverNameFor: (String?) -> String?,
 ) {
-    var draft by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
     LaunchedEffect(messages.size) {
@@ -372,47 +379,64 @@ private fun ConversationDetailView(
         }
 
         HorizontalDivider(color = TacticalSurface)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(TacticalBackground)
-                .imePadding()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = draft,
-                onValueChange = { draft = it },
-                placeholder = { Text("Message", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)) },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                maxLines = 4,
-                modifier = Modifier.weight(1f),
-                colors = TextFieldDefaults.colors(
-                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    focusedContainerColor = TacticalSurface,
-                    unfocusedContainerColor = TacticalSurface,
-                    focusedIndicatorColor = TacticalAccent,
-                    unfocusedIndicatorColor = TacticalAccent.copy(alpha = 0.4f),
-                    cursorColor = TacticalAccent,
-                ),
+        MessageComposer(onSend)
+    }
+}
+
+@Composable
+internal fun MessageComposer(onSend: (String) -> Unit) {
+    var draft by remember { mutableStateOf("") }
+    fun submit() {
+        val trimmed = draft.trim()
+        if (trimmed.isNotEmpty()) {
+            onSend(trimmed)
+            draft = ""
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(TacticalBackground)
+            .imePadding()
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedTextField(
+            value = draft,
+            onValueChange = { draft = it },
+            label = { Text("Message") },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = ImeAction.Send,
+            ),
+            keyboardActions = KeyboardActions(onSend = { submit() }),
+            maxLines = 4,
+            modifier = Modifier.weight(1f).onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyUp &&
+                    (event.key == Key.Enter || event.key == Key.NumPadEnter) &&
+                    !event.isShiftPressed
+                ) {
+                    submit()
+                    true
+                } else false
+            },
+            colors = TextFieldDefaults.colors(
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                focusedContainerColor = TacticalSurface,
+                unfocusedContainerColor = TacticalSurface,
+                focusedIndicatorColor = TacticalAccent,
+                unfocusedIndicatorColor = TacticalAccent.copy(alpha = 0.4f),
+                cursorColor = TacticalAccent,
+            ),
+        )
+        Spacer(Modifier.width(6.dp))
+        IconButton(onClick = { submit() }) {
+            Icon(
+                Icons.AutoMirrored.Filled.Send,
+                contentDescription = "Send",
+                tint = TacticalAccent,
             )
-            Spacer(Modifier.width(6.dp))
-            IconButton(
-                onClick = {
-                    val trimmed = draft.trim()
-                    if (trimmed.isNotEmpty()) {
-                        onSend(trimmed)
-                        draft = ""
-                    }
-                },
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send",
-                    tint = TacticalAccent,
-                )
-            }
         }
     }
 }

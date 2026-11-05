@@ -14,12 +14,14 @@ JAVA_HOME="$HOME/.jdks/jbr-21.0.11" ANDROID_HOME="$HOME/Android/Sdk" \
 ```
 
 The script refuses non-emulator serials, sets a temporary 240×320 / 160-dpi
-viewport, installs only on that emulator, runs the two key-input tests and
+viewport, installs only on that emulator, runs the button and form key-input tests and
 restores its display. GitHub CI runs the same script on Android 11 / API 30.
 Use a disposable emulator: `adb install -r` preserves any app data already on it.
 The button tests first send a platform D-pad event to leave Android touch mode,
 then seed focus on a visible action and check D-pad focus moves
-and Select on the onboarding pages. They do **not** prove that an Activity
+and Select on onboarding and server setup. Server forms additionally test IME
+Next/Done, hardware Enter, Save focus and a fake Save callback; chat tests
+exercise Send without connecting to a real server. They do **not** prove that an Activity
 receives initial focus automatically after waking or opening the app. Tests of
 persistent rebinding and channel switching belong next to the input state
 machine when it is implemented.

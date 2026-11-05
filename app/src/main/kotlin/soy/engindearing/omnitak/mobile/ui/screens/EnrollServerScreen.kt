@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -44,7 +45,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -75,6 +84,11 @@ fun EnrollServerScreen(onDone: () -> Unit) {
     val certVault = app.certVault
     val scope = rememberCoroutineScope()
     val enrollment = remember { CSREnrollmentService(certVault) }
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val saveFocus = remember { FocusRequester() }
+    val nextField = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) })
+    val finishFields = KeyboardActions(onDone = { keyboard?.hide(); saveFocus.requestFocus() })
 
     var name by remember { mutableStateOf("") }
     var host by remember { mutableStateOf("") }
@@ -175,7 +189,7 @@ fun EnrollServerScreen(onDone: () -> Unit) {
                         }
                     },
                     enabled = canEnroll,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(saveFocus),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = TacticalAccent,
                         contentColor = TacticalBackground,
@@ -217,7 +231,8 @@ fun EnrollServerScreen(onDone: () -> Unit) {
                 placeholder = { Text("tak.example.com or 10.0.0.5") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
+                keyboardActions = nextField,
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -227,7 +242,8 @@ fun EnrollServerScreen(onDone: () -> Unit) {
                     label = { Text("Connect port") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                    keyboardActions = nextField,
                 )
                 TextField(
                     value = enrollPortText,
@@ -235,7 +251,8 @@ fun EnrollServerScreen(onDone: () -> Unit) {
                     label = { Text("Enrollment port") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                    keyboardActions = nextField,
                 )
             }
 
@@ -244,6 +261,8 @@ fun EnrollServerScreen(onDone: () -> Unit) {
                 onValueChange = { name = it },
                 label = { Text("Display name") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = nextField,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -252,6 +271,8 @@ fun EnrollServerScreen(onDone: () -> Unit) {
                 onValueChange = { username = it.trim() },
                 label = { Text("Username") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = nextField,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -262,7 +283,8 @@ fun EnrollServerScreen(onDone: () -> Unit) {
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                keyboardActions = finishFields,
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
@@ -286,7 +308,11 @@ fun EnrollServerScreen(onDone: () -> Unit) {
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     )
                 }
-                Switch(checked = trustSelfSigned, onCheckedChange = { trustSelfSigned = it })
+                Switch(
+                    checked = trustSelfSigned,
+                    onCheckedChange = { trustSelfSigned = it },
+                    modifier = Modifier.semantics { contentDescription = "Trust self-signed certificate" },
+                )
             }
 
             if (trustSelfSigned) {

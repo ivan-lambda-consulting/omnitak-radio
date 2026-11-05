@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -52,7 +53,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -60,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.flowOf
 import soy.engindearing.omnitak.mobile.OmniTAKApp
 import soy.engindearing.omnitak.mobile.data.ConnectionProtocol
+import soy.engindearing.omnitak.mobile.data.CertVault
 import soy.engindearing.omnitak.mobile.data.TAKServer
 import soy.engindearing.omnitak.mobile.data.discovery.TakNsdDiscovery
 import soy.engindearing.omnitak.mobile.ui.theme.TacticalAccent
@@ -68,10 +78,19 @@ import soy.engindearing.omnitak.mobile.ui.theme.TacticalBackground
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddServerScreen(onDone: () -> Unit) {
+    val app = LocalContext.current.applicationContext as OmniTAKApp
+    AddServerForm(onDone, app.certVault, addServer = { app.serverManager.addServer(it) })
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun AddServerForm(onDone: () -> Unit, certVault: CertVault, addServer: (TAKServer) -> Unit) {
     val context = LocalContext.current
-    val app = context.applicationContext as OmniTAKApp
-    val manager = app.serverManager
-    val certVault = app.certVault
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val saveFocus = remember { FocusRequester() }
+    val nextField = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) })
+    val finishFields = KeyboardActions(onDone = { keyboard?.hide(); saveFocus.requestFocus() })
 
     var name by remember { mutableStateOf("") }
     var host by remember { mutableStateOf("") }
@@ -149,7 +168,7 @@ fun AddServerScreen(onDone: () -> Unit) {
                 Button(
                     onClick = {
                         if (!canSave) return@Button
-                        manager.addServer(
+                        addServer(
                             TAKServer(
                                 name = name.trim(),
                                 host = host,
@@ -171,7 +190,7 @@ fun AddServerScreen(onDone: () -> Unit) {
                         onDone()
                     },
                     enabled = canSave,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(saveFocus),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = TacticalAccent,
                         contentColor = TacticalBackground,
@@ -249,6 +268,8 @@ fun AddServerScreen(onDone: () -> Unit) {
                 label = { Text("Name") },
                 placeholder = { Text("e.g. Team Server") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = nextField,
                 modifier = Modifier.fillMaxWidth(),
                 colors = tacticalOutlineColors(),
             )
@@ -260,7 +281,8 @@ fun AddServerScreen(onDone: () -> Unit) {
                 placeholder = { Text("tak.example.com") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
+                keyboardActions = nextField,
                 colors = tacticalOutlineColors(),
             )
 
@@ -270,7 +292,8 @@ fun AddServerScreen(onDone: () -> Unit) {
                 label = { Text("Port") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                keyboardActions = nextField,
                 colors = tacticalOutlineColors(),
             )
 
@@ -290,6 +313,7 @@ fun AddServerScreen(onDone: () -> Unit) {
                 Switch(
                     checked = useTLS,
                     onCheckedChange = { useTLS = it },
+                    modifier = Modifier.semantics { contentDescription = "Use TLS" },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = TacticalBackground,
                         checkedTrackColor = TacticalAccent,
@@ -352,7 +376,8 @@ fun AddServerScreen(onDone: () -> Unit) {
                         } else {
                             PasswordVisualTransformation()
                         },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                        keyboardActions = nextField,
                         trailingIcon = {
                             IconButton(onClick = { certPasswordVisible = !certPasswordVisible }) {
                                 Icon(
@@ -406,6 +431,8 @@ fun AddServerScreen(onDone: () -> Unit) {
                 label = { Text("Username") },
                 placeholder = { Text("operator") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = nextField,
                 modifier = Modifier.fillMaxWidth(),
                 colors = tacticalOutlineColors(),
             )
@@ -420,7 +447,8 @@ fun AddServerScreen(onDone: () -> Unit) {
                 } else {
                     PasswordVisualTransformation()
                 },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                keyboardActions = finishFields,
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(

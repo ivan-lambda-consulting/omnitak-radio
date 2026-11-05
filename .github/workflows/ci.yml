@@ -60,7 +60,7 @@ jobs:
           retention-days: 14
 
   button-ui:
-    name: Compact-screen button navigation (emulator)
+    name: Compact-screen button interactions (emulator)
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 40
