@@ -161,6 +161,14 @@ class RadioFormNavigationTest {
         compose.onNodeWithText("White").assertIsDisplayed()
     }
 
+    @Test fun callsign_enter_focuses_team_without_opening_it_on_the_same_keypress() {
+        compose.setContent { SettingsScreen() }
+        focus("Callsign")
+        compose.onNodeWithText("Callsign").performKeyInput { pressKey(Key.Enter) }
+        compose.onNodeWithText("Team").assertIsFocused()
+        compose.onNodeWithText("White").assertDoesNotExist()
+    }
+
     @Test fun server_setup_actions_are_reachable_on_compact_screen() {
         var selected: String? = null
         compose.setContent {

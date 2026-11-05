@@ -692,6 +692,7 @@ private val ATAK_TEAM_COLORS: List<Pair<String, Color>> = listOf(
 @Composable
 private fun TeamColorDropdown(value: String, onSelect: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    var selectPressedHere by remember { mutableStateOf(false) }
     val current = ATAK_TEAM_COLORS.firstOrNull { it.first.equals(value, ignoreCase = true) }
         ?: ("Cyan" to Color(0xFF00BCD4))
 
@@ -718,12 +719,22 @@ private fun TeamColorDropdown(value: String, onSelect: (String) -> Unit) {
                 .fillMaxWidth()
                 .menuAnchor()
                 .onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyUp &&
-                        (event.key == Key.DirectionCenter || event.key == Key.Enter || event.key == Key.NumPadEnter)
-                    ) {
-                        expanded = !expanded
-                        true
-                    } else false
+                    val select = event.key == Key.DirectionCenter ||
+                        event.key == Key.Enter || event.key == Key.NumPadEnter
+                    when {
+                        !select -> false
+                        event.type == KeyEventType.KeyDown -> {
+                            selectPressedHere = true
+                            true
+                        }
+                        event.type == KeyEventType.KeyUp -> {
+                            // Enter may move focus here from Callsign; only a press begun here opens the menu.
+                            if (selectPressedHere) expanded = !expanded
+                            selectPressedHere = false
+                            true
+                        }
+                        else -> false
+                    }
                 },
         )
         DropdownMenu(
