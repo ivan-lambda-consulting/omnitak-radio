@@ -1,5 +1,7 @@
 package soy.engindearing.omnitak.mobile.ui
 
+import android.view.View
+import android.view.WindowInsets
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -25,7 +27,11 @@ class ChatCompactLayoutTest {
         val title = compose.onNodeWithText("Test broadcast").fetchSemanticsNode().boundsInRoot
         val send = compose.onNodeWithContentDescription("Send").fetchSemanticsNode().boundsInRoot
         val screen = compose.onRoot().fetchSemanticsNode().boundsInRoot
-        assertTrue("Header overlaps the status bar: $title", title.top >= screen.top + 24f)
+        val content = compose.activity.findViewById<View>(android.R.id.content)
+        val origin = IntArray(2).also(content::getLocationOnScreen)
+        val statusBar = content.rootWindowInsets.getInsets(WindowInsets.Type.statusBars()).top
+        assertTrue("Header overlaps the status bar: $title, origin=${origin[1]}, inset=$statusBar",
+            title.top + origin[1] >= statusBar)
         assertTrue("Send is cut by the navigation bar: $send", send.bottom <= screen.bottom - 16f)
     }
 }
