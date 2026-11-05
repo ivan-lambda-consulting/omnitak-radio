@@ -57,6 +57,7 @@ class TakServerPackage private constructor(
             }
             val imported = server.copy(certificateName = clientName, caCertificateName = caName)
             val result = addServer(imported)
+            // ServerManager returns its existing object for a duplicate endpoint.
             require(result === imported) { "Server already configured" }
             return result
         } catch (e: Exception) {
