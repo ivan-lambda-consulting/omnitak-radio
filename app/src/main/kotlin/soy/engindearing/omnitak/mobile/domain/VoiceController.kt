@@ -11,7 +11,6 @@ import android.media.MediaRecorder
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.view.InputDevice
 import android.view.KeyEvent
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -193,8 +192,7 @@ class VoiceController(context: Context) {
                 return true
             }
             val name = event.device?.name ?: return false
-            if (event.device?.keyboardType == InputDevice.KEYBOARD_TYPE_ALPHABETIC ||
-                event.keyCode in NAVIGATION_KEYS) return false
+            if (!canLearnPtt(event.keyCode, event.device?.keyboardType ?: return false)) return false
             val learned = VoiceInputBinding(name, event.keyCode, event.scanCode)
             if (inputStore.save(learned)) {
                 inputBinding = learned
@@ -214,9 +212,4 @@ class VoiceController(context: Context) {
         return false
     }
 
-    private companion object {
-        val NAVIGATION_KEYS = setOf(KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_DPAD_UP,
-            KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
-            KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_BACK)
-    }
 }

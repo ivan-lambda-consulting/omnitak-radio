@@ -20,7 +20,7 @@ data class VoiceConfig(
     val username: String = "",
     val password: String = "",
 ) {
-    fun isValid(): Boolean = host.isNotBlank() && host.none(Char::isWhitespace) &&
+    fun isValid(): Boolean = host.isNotBlank() && host.none { it.isWhitespace() || it == '/' || it == '@' } &&
         port in 1..65535 && username.isNotBlank()
 }
 

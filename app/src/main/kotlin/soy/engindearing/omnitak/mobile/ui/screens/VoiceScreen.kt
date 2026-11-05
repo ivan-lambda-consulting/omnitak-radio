@@ -77,9 +77,10 @@ fun VoiceScreen() {
 
     fun connect() {
         val config = VoiceConfig(host.trim(), port.toIntOrNull() ?: 0, username.trim(), password)
+        val stored = config.isValid() && runCatching { store?.save(config) == true }.getOrDefault(false)
         note = when {
             !config.isValid() -> "Enter host, port and username"
-            store == null || !store.save(config) -> "Secure voice settings unavailable"
+            !stored -> "Secure voice settings unavailable"
             !voice.connect(config) -> "Voice could not start; check permission and certificate"
             else -> ""
         }

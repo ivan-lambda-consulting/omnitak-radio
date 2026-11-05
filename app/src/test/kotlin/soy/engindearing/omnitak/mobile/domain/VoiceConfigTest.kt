@@ -9,6 +9,7 @@ class VoiceConfigTest {
         assertTrue(VoiceConfig("192.168.1.131", 64738, "operator").isValid())
         assertFalse(VoiceConfig("", 64738, "operator").isValid())
         assertFalse(VoiceConfig("host name", 64738, "operator").isValid())
+        assertFalse(VoiceConfig("http://host", 64738, "operator").isValid())
         assertFalse(VoiceConfig("localhost", 0, "operator").isValid())
         assertFalse(VoiceConfig("localhost", 65536, "operator").isValid())
         assertFalse(VoiceConfig("localhost", 64738, " ").isValid())
