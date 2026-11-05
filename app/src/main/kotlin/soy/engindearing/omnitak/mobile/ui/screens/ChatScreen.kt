@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -309,7 +311,7 @@ private fun ConversationRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ConversationDetailView(
+internal fun ConversationDetailView(
     conversation: ChatConversation,
     messages: List<ChatMessage>,
     selfUid: String,
@@ -328,6 +330,7 @@ private fun ConversationDetailView(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .background(TacticalBackground),
     ) {
         // Header row

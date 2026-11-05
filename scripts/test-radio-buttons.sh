@@ -26,7 +26,7 @@ trap cleanup EXIT
 "$adb" -s "$serial" install -r app/build/outputs/apk/debug/app-debug.apk
 "$adb" -s "$serial" install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 result=$("$adb" -s "$serial" shell am instrument -w \
-  -e class soy.engindearing.omnitak.mobile.ui.RadioButtonNavigationTest,soy.engindearing.omnitak.mobile.ui.RadioFormNavigationTest \
+  -e class soy.engindearing.omnitak.mobile.ui.RadioButtonNavigationTest,soy.engindearing.omnitak.mobile.ui.RadioFormNavigationTest,soy.engindearing.omnitak.mobile.ui.ChatCompactLayoutTest \
   com.ivanlambdaconsulting.omnitakradio.test/androidx.test.runner.AndroidJUnitRunner)
 printf '%s\n' "$result"
-grep -q 'OK (24 tests)' <<< "$result"
+grep -q 'OK (25 tests)' <<< "$result"
