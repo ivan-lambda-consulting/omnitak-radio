@@ -48,8 +48,13 @@ Select **Save & connect voice** and grant microphone access. Voice settings use
 Keystore-backed encrypted preferences; the trusted certificate is stored in
 app-private storage. A different or missing certificate must not connect.
 
-Configure ATAK Vx on the second device in Mumble-server mode with the same
-host/port/password and a different username. Select the root channel on both.
+On the second device, install **ATAK Plugin: Vx** for ATAK-CIV, load/enable it,
+and grant microphone permission. Its listing places the User Guide and Mumble
+setup guide under **Settings → Tool Preferences → Specific Tool Preferences →
+Voice Preferences**. Choose Mumble/Murmur mode rather than Multicast; enter
+the same host/port/voice password with a different username. Compare the
+server certificate fingerprint before accepting a trust prompt. Select the
+root channel on both. Do not change ATAK's separate TAK data server settings.
 Only after the second device is ready: hold OmniTAK's **HOLD TO TALK** with
 Select or touch, release to stop; test two-way audio and no stuck transmit.
 **Learn hardware PTT** captures a non-alphabetic physical key; **Reset** drops
